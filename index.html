@@ -1,28 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="stylesheet" href="../style.css" />
+		<title>Cubes</title>
+	</head>
 
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="../style.css">
-	<title>Cubes</title>
-</head>
+	<body>
+		<article>
+			<form method="POST" id="startMenu" onsubmit="formValidation(event);">
+				<label for="">Pick your poison:</label>
+				<input type="submit" name="cubes" value="Cubes!" />
+				<input type="submit" name="pattern" value="Pattern!" />
+			</form>
+		</article>
+	</body>
 
-<body>
-	<article>
-		<form method="post" onsubmit="event.preventDefault(); pageReload();">
-			<input type="submit" value="Press me!">
-		</form>
-	</article>
-</body>
+	<script src="../javascript/utils.js"></script>
+	<script src="../javascript/cube.js"></script>
+	<script src="../javascript/pattern.js"></script>
+	<script defer>
+		// window.onresize = () => {
+		// 	location.reload();
+		// };
 
-<script src="main.js" defer></script>
-<script>
-	window.onresize = function(event) {
-		location.reload();
-	};
-	function pageReload() {
-		location.reload();
-	};
-</script>
+		function formValidation(event) {
+			event.preventDefault();
+
+			if (event.submitter.name === "cubes") {
+				cubes.run();
+			} else if (event.submitter.name === "pattern") {
+				patterns.run();
+			} else if (event.submitter.name === "patternMenu") {
+				patterns.update(event.target);
+			}
+		}
+
+		function pageReload() {
+			location.reload();
+		}
+	</script>
 </html>

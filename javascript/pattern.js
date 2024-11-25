@@ -73,18 +73,6 @@ const patterns = (function () {
 		},
 	};
 
-	// Debounce solution from Mr. Polywhirl: https://stackoverflow.com/questions/75988682/debounce-in-javascript
-	// Original source Josh W. Comeau: https://www.joshwcomeau.com/snippets/javascript/debounce/
-	const debounce = (callback, wait) => {
-		let timeoutId = null;
-		return (...args) => {
-			window.clearTimeout(timeoutId);
-			timeoutId = window.setTimeout(() => {
-				callback(...args);
-			}, wait);
-		};
-	};
-
 	function main() {
 		const bodyElement = document.querySelector("body");
 		bodyElement.innerHTML = "";
@@ -207,42 +195,6 @@ const patterns = (function () {
 		patternAnimationLoop();
 	}
 
-	// To create new html elements
-	function createNewElement(element, properties) {
-		element = document.createElement(element);
-		for (const [key, value] of Object.entries(properties)) {
-			switch (key) {
-				case "id":
-				case "type":
-				case "name":
-				case "width":
-				case "value":
-				case "textContent":
-				case "step":
-				case "height":
-				case "onsubmit":
-					element[key] = value;
-					break;
-				case "classList":
-					if (Array.isArray(value)) element.classList.add(...value);
-					break;
-				case "listeners":
-					if (Array.isArray(value)) {
-						value.forEach((listener) => {
-							element.addEventListener(listener.type, () => {
-								listener.action;
-							});
-						});
-					}
-					break;
-				default:
-					console.warn(`Unhandled property: ${key}`);
-					break;
-			}
-		}
-		return element;
-	}
-
 	// To animate the entire pattern array in a loop
 	function patternAnimationLoop() {
 		if (patternConstants.IS_PAUSED) return;
@@ -284,7 +236,7 @@ const patterns = (function () {
 	function patternDraw(pattern, index) {
 		const { x, y } = pattern.position;
 		// Styling and placement of pattern
-		context.strokeStyle = adjustColor(pattern.fillColor);
+		context.strokeStyle = adjustColor(pattern.fillColor, patternConstants.COLOR_RANGE.MIN, patternConstants.COLOR_RANGE.MAX);
 		context.lineWidth = patternConstants.WIDTH;
 		context.beginPath();
 		context.moveTo(x.current, y.current);
@@ -309,27 +261,6 @@ const patterns = (function () {
 		}
 	}
 
-	// To adjust color values
-	function adjustColor(fillColor) {
-		// Loop through each color component defined in the color array
-		for (const color of fillColor) {
-			// Adjust value based on state
-			color.value += color.state ? -1 : 1;
-
-			// Clamp values and update state accordingly
-			if (color.value <= patternConstants.COLOR_RANGE.MIN) {
-				color.value = patternConstants.COLOR_RANGE.MIN;
-				color.state = !color.state; // Start increasing when reaching 0
-			} else if (color.value >= patternConstants.COLOR_RANGE.MAX) {
-				color.value = patternConstants.COLOR_RANGE.MAX;
-				color.state = !color.state; // Start decreasing when reaching max
-			}
-		}
-
-		// Return an rgb string
-		return `rgb(${fillColor[0].value}, ${fillColor[1].value}, ${fillColor[2].value})`;
-	}
-
 	// To adjust pattern positions
 	function adjustMovement(pattern, index, iteration = 0) {
 		const excludedMargins = [],
@@ -341,7 +272,7 @@ const patterns = (function () {
 		// To pick random margins that we haven't excluded
 		for (let i = 0; i < patternConstants.MAX_ITERATIONS; i++) {
 			for (const [axis, { current, target }] of Object.entries({ x: position.x, y: position.y })) {
-				chosenMargins[axis] = variance()
+				chosenMargins[axis] = getRandomBool(patternConstants.VARIANCE)
 					? getRandomArrayElement(marginValues)
 					: marginValues.reduce((best, margin) => {
 							// Try to find the optimal next step
@@ -404,11 +335,6 @@ const patterns = (function () {
 			position.known[position.known.length - 1].push({ x: newPosition.x, y: newPosition.y });
 			position.known.push([{ x: newPosition.x, y: newPosition.y }]);
 		}
-	}
-
-	// To give our patterns pseudo-random movements
-	function variance() {
-		return Math.random() < patternConstants.VARIANCE;
 	}
 
 	// To create new pattern buds and return their associated objects

@@ -155,3 +155,7 @@ document.addEventListener("keydown", (event) => {
 		});
 	}
 });
+
+window.onresize = () => {
+	location.reload();
+};

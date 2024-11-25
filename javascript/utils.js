@@ -1,23 +1,64 @@
-// Function to generate a random integer within a specified range
-function getRandomInt(min, max) {
-	return Math.floor(Math.random() * (max - min)) + min;
+/**
+ * Picks a pseudo-random value within a specified range.
+ * @param {number} min Minimum of the range, defaults to 0.
+ * @param {number} max Maximum of the range, defaults to 20.
+ * @returns {number} Returns the rounded picked value.
+ */
+function getRandomInt(min = 0, max = 20) {
+	return Math.round(Math.random() * (max - min)) + min;
 }
 
-// Function to generate a random boolean value
-function getRandomBool() {
-    return Math.random() < 0.5; // Returns true or false with equal probability
+/**
+ * Picks a pseudo-random boolean value with an optional likelyhood input.
+ * @param {number} chance A value to check against, defaults to 0.5.
+ * @returns {boolean} Returns a boolean, true if a pseudo-random number between 0 and 1 is less then chance, otherwise false.
+ */
+function getRandomBool(chance = 0.5) {
+    return Math.random() < chance;
 }
 
-// Function to generate a random color as an array of RGB values
-function getRandomColor(min, max) {
+/**
+ * Creates an array of objects that represent RGB color values along with a state property to indicate if a value is increasing or decreasing.
+ * @param {number} min Minimum of the color range, defaults to 0.
+ * @param {number} max Maximum of the color range, default to 255.
+ * @returns {Array<{}>} Returns an array of 3 objects, one for each of the RGB values. Objects contain a random value within given range, and a state indicating if it's increasing or decreasing.
+ */
+function getRandomColor(min = 0, max = 255) {
     return Array.from({ length: 3 }, () => ({
         value: getRandomInt(min, max),
         state: getRandomBool(),
     }));
 }
 
-// Function to set a nested property, returns end value
-// Solution provided by AI
+/**
+ * Debounce solution from Mr. Polywhirl: https://stackoverflow.com/questions/75988682/debounce-in-javascript
+ * 
+ * Original source Josh W. Comeau: https://www.joshwcomeau.com/snippets/javascript/debounce/
+ * 
+ * Creates a debounced function that delays invoking the callback until after wait milliseconds have elapsed since the last time the debounced function was invoked.
+ * @param {Function} callback The function to debounce.
+ * @param {number} wait The number of milliseconds to delay.
+ * @returns {Function} Returns the new debounced function.
+ */
+function debounce(callback, wait) {
+    let timeoutId = null;
+    return (...args) => {
+        window.clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => {
+            callback(...args);
+        }, wait);
+    };
+};
+
+/**
+ * Sets a single nested property inside a given object.
+ * 
+ * Solution provided completely by AI, got no source.
+ * @param {object} obj Original object to search through.
+ * @param {Array<string>} path Array containing the full list of property keys leading to, and including, the property to change.
+ * @param {*} value New value to set the searched for property to.
+ * @returns {*} Returns the adjusted value.
+ */
 function setNestedProperty(obj, path, value) {
     if (typeof path === "string") {
       path = path.split(".");
@@ -34,12 +75,89 @@ function setNestedProperty(obj, path, value) {
     }, obj);
 }
 
-// Function to see if a given number lies in a specific range
+/**
+ * Creates a new html element and sets it's respective properties if given.
+ * @param {string} element String name of the element.
+ * @param {Object} properties Properties to set for the element.
+ * @returns {node} Returns the node of the newly created element.
+ */
+function createNewElement(element, properties) {
+    element = document.createElement(element);
+    for (const [key, value] of Object.entries(properties)) {
+        switch (key) {
+            case "id":
+            case "type":
+            case "name":
+            case "width":
+            case "value":
+            case "textContent":
+            case "step":
+            case "height":
+            case "onsubmit":
+                element[key] = value;
+                break;
+            case "classList":
+                if (Array.isArray(value)) element.classList.add(...value);
+                break;
+            case "listeners":
+                if (Array.isArray(value)) {
+                    value.forEach((listener) => {
+                        element.addEventListener(listener.type, () => {
+                            listener.action;
+                        });
+                    });
+                }
+                break;
+            default:
+                console.warn(`Unhandled property: ${key}`);
+                break;
+        }
+    }
+    return element;
+}
+
+/**
+ * Adjusts the color values of a given RGB array.
+ * @param {Array<{}>} fillColor Array to manipulate.
+ * @param {number} min Minimum of the color range.
+ * @param {number} max Maximum of the color range.
+ * @returns {string} Returns a string in the format of rgb(r, g, b) with the updated color values.
+ */
+function adjustColor(fillColor, min = 0, max = 255) {
+    // Loop through each color component defined in the cube.color array
+    for (const color of fillColor) {
+        // Adjust value based on state
+        color.value += color.state ? -1 : 1;
+
+        // Clamp values and update state accordingly
+        if (color.value <= min) {
+            color.value = min;
+            color.state = !color.state; // Start increasing when reaching 0
+        } else if (color.value >= max) {
+            color.value = max;
+            color.state = !color.state; // Start decreasing when reaching max
+        }
+    }
+
+    return `rgb(${fillColor[0].value}, ${fillColor[1].value}, ${fillColor[2].value})`;
+}
+
+/**
+ * Check to see if a given number lies in a specified range.
+ * @param {number} number Number to search for.
+ * @param {number} min Minimum of the range.
+ * @param {number} max Maximum of the range.
+ * @returns {boolean} Returns a boolean, true if the given number is included in the range, false otherwise.
+ */
 function isInRange(number, min, max) {
     return (number >= min) && (number <= max);
 }
 
-// Get a random element from any given array
+/**
+ * Picks a pseudo-random element from a given array.
+ * @param {Array<*>} list Array to search through.
+ * @returns {*} Returns a pseudo-randomly picked element.
+ */
 function getRandomArrayElement(list) {
     return list[Math.floor(Math.random() * list.length)];
 }

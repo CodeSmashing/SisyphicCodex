@@ -13,16 +13,13 @@ const cubes = (function () {
 		MIN_SPEED: 1,
 		MAX_SPEED: 20,
 		ARTICLES: document.querySelectorAll("article"),
-	
-		// Constants for color state
-		INCREASING: true,
-		DECREASING: false,
+		COLOR_RANGE: { MIN: 0, MAX: 255 },
 	}
 
 	// The game function to loop
 	function cubesGame(cubeArray) {
 		cubeArray.forEach((cube) => {
-			cube.domElement.style.backgroundColor = adjustColor(cube.fillColor);
+			cube.domElement.style.backgroundColor = adjustColor(cube.fillColor, cubeConstants.COLOR_RANGE.MIN, cubeConstants.COLOR_RANGE.MAX);
 			cubeMovement(cube);
 		});
 	}
@@ -82,27 +79,6 @@ const cubes = (function () {
 			// Update the DOM element's position
 			cube.domElement.style[isXAxis ? "left" : "top"] = `${Math.max(0, newPosition)}px`; // Ensure position is not negative
 		}
-	}
-
-	// Function to adjust color values
-	function adjustColor(fillColor) {
-		// Loop through each color component defined in the cube.color array
-		for (const color of fillColor) {
-			// Adjust value based on state
-			color.value += color.state ? -1 : 1;
-
-			// Clamp values and update state accordingly
-			if (color.value <= 0) {
-				color.value = 0;
-				color.state = cubeConstants.DECREASING; // Start increasing when reaching 0
-			} else if (color.value >= cubeConstants.COLOR_RANGE) {
-				color.value = cubeConstants.COLOR_RANGE;
-				color.state = cubeConstants.INCREASING; // Start decreasing when reaching max
-			}
-		}
-
-		// Update the DOM element's background color after adjusting all components
-		return `rgb(${fillColor[0].value}, ${fillColor[1].value}, ${fillColor[2].value})`;
 	}
 
 	// Function to create and style a cube DOM element and returns it's associated object, uses existing element if present

@@ -13,6 +13,7 @@
 				<label for="">Pick your poison:</label>
 				<input type="submit" name="cubes" value="Cubes!" />
 				<input type="submit" name="pattern" value="Pattern!" />
+				<input type="submit" name="snake" value="Snake!" />
 			</form>
 		</article>
 	</body>
@@ -20,20 +21,26 @@
 	<script src="../javascript/utils.js"></script>
 	<script src="../javascript/cube.js"></script>
 	<script src="../javascript/pattern.js"></script>
+	<script src="../javascript/snake.js"></script>
 	<script defer>
-		// window.onresize = () => {
-		// 	location.reload();
-		// };
-
 		function formValidation(event) {
 			event.preventDefault();
 
-			if (event.submitter.name === "cubes") {
-				cubes.run();
-			} else if (event.submitter.name === "pattern") {
-				patterns.run();
-			} else if (event.submitter.name === "patternMenu") {
-				patterns.update(event.target);
+			switch (event.submitter.name) {
+				case "cubes":
+					cubes.run();
+					break;
+				case "pattern":
+					patterns.run();
+					break;
+				case "patternMenu":
+					patterns.update(event.target);
+					break;
+				case "snake":
+					snake.run();
+					break;
+				default:
+					console.log("we haven't considerd that option yet.");
 			}
 		}
 

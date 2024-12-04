@@ -3,7 +3,7 @@ const cubes = (function () {
 	let animationFrameId = null;
 	let cubeArray = [];
 	let lastTime = 0;
-	let hasRun = false;  // Flag to prevent multiple runs
+	let hasRun = false; // Flag to prevent multiple runs
 
 	// Defining the constants
 	const cubeConstants = {
@@ -18,12 +18,12 @@ const cubes = (function () {
 
 		ARTICLES: document.querySelectorAll("article"),
 		COLOR_RANGE: { MIN: 0, MAX: 255 },
-	}
+	};
 
 	function main() {
 		if (hasRun) {
-		  console.log("Cubes has already been run.");
-		  return;
+			console.log("Cubes has already been run.");
+			return;
 		}
 
 		hasRun = true;
@@ -32,7 +32,7 @@ const cubes = (function () {
 		const formElement = document.querySelector("form[id='startMenu'");
 		formElement.addEventListener("submit", (event) => {
 			if (event.submitter.name !== "cubes") hasRun = false;
-		})
+		});
 
 		// Fill the cube array with random cubes + elements that are already present
 		// We first add the already existing elements, then we create new DOM elements for each extra cube
@@ -42,7 +42,7 @@ const cubes = (function () {
 
 		// Append all the new DOM elements except for those of the cubes that were already present
 		cubeArray.forEach((cube, index) => {
-			if (index > (cubeConstants.ARTICLES.length - 1)) {
+			if (index > cubeConstants.ARTICLES.length - 1) {
 				bodyElement.insertAdjacentElement("beforeend", cube.domElement);
 			}
 		});
@@ -67,7 +67,7 @@ const cubes = (function () {
 		});
 
 		// Specific click listener for the "correct" article
-		cubeArray[0].domElement.addEventListener("click", () => cubeConstants.IS_CLICKED = true);
+		cubeArray[0].domElement.addEventListener("click", () => (cubeConstants.IS_CLICKED = true));
 
 		// Start the game initially
 		animationFrameId = requestAnimationFrame(cubesAnimate);
@@ -128,7 +128,7 @@ const cubes = (function () {
 
 	// Function to create and style a cube DOM element and returns it's associated object, uses existing element if present
 	function createCube(index) {
-		if (index > (cubeConstants.ARTICLES.length - 1)) {
+		if (index > cubeConstants.ARTICLES.length - 1) {
 			const width = getRandomInt(cubeConstants.MIN_SIZE, cubeConstants.MAX_SIZE);
 			const height = getRandomInt(cubeConstants.MIN_SIZE, cubeConstants.MAX_SIZE);
 			const positionX = getRandomInt(0, maxWidth - width);
@@ -151,8 +151,8 @@ const cubes = (function () {
 					},
 				},
 				fillColor: color,
-				domElement: createNewElement("article", { style: { width: `${width}px`, height: `${height}px`, left: `${positionX}px`, top: `${positionY}px`, backgroundColor: `rgb(${color[0].value}, ${color[1].value}, ${color[2].value})` }}),
-			}
+				domElement: createNewElement("article", { style: { width: `${width}px`, height: `${height}px`, left: `${positionX}px`, top: `${positionY}px`, backgroundColor: `rgb(${color[0].value}, ${color[1].value}, ${color[2].value})` } }),
+			};
 		} else {
 			const element = cubeConstants.ARTICLES[index];
 			const rgbString = window.getComputedStyle(element).getPropertyValue("background-color");
@@ -179,7 +179,7 @@ const cubes = (function () {
 				},
 				fillColor: `rgb(${rgbObj[0].value}, ${rgbObj[1].value}, ${rgbObj[2].value})`,
 				domElement: element,
-			}
+			};
 		}
 	}
 

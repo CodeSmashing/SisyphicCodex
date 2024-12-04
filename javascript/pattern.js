@@ -14,19 +14,31 @@ const patterns = (function () {
 		ORIGIN: {
 			CENTER: {
 				MARGIN: 200,
-				get X() { return (maxWidth / 2) + getRandomInt(-this.MARGIN, this.MARGIN); },
-				get Y() { return (maxHeight / 2) + getRandomInt(-this.MARGIN, this.MARGIN); },
+				get X() {
+					return maxWidth / 2 + getRandomInt(-this.MARGIN, this.MARGIN);
+				},
+				get Y() {
+					return maxHeight / 2 + getRandomInt(-this.MARGIN, this.MARGIN);
+				},
 			},
 			FULL: {
-				get X() { return getRandomInt(0, maxWidth); },
-				get Y() { return getRandomInt(0, maxHeight); },
+				get X() {
+					return getRandomInt(0, maxWidth);
+				},
+				get Y() {
+					return getRandomInt(0, maxHeight);
+				},
 			},
 			CURSOR: {
 				MARGIN: 100,
 				TARGET_X: 0,
 				TARGET_Y: 0,
-				get X() { return Math.abs((this.TARGET_X - maxWidth) + getRandomInt(-this.MARGIN, this.MARGIN)); },
-				get Y() { return Math.abs((this.TARGET_Y - maxHeight) + getRandomInt(-this.MARGIN, this.MARGIN)); },
+				get X() {
+					return Math.abs(this.TARGET_X - maxWidth + getRandomInt(-this.MARGIN, this.MARGIN));
+				},
+				get Y() {
+					return Math.abs(this.TARGET_Y - maxHeight + getRandomInt(-this.MARGIN, this.MARGIN));
+				},
 			},
 		},
 
@@ -82,11 +94,31 @@ const patterns = (function () {
 		// Create elements like the canvas or option-menu and set properties
 		const canvas = createNewElement("canvas", { width: maxWidth, height: maxHeight });
 		const optionMenuArticle = createNewElement("article", { id: "patternMenu" });
-		const optionMenuForm = createNewElement("form", { classList: [ "hide" ],  onsubmit: (event) => { formValidation(event); }});
-		const optionMenuToggle = createNewElement("button", { classList: [ "toggle" ], type: "button", textContent: "| | |", listeners: [
-			{ type: "click", get action() { return optionMenuToggle.classList.toggle("hide") }},
-			{ type: "click", get action() { return optionMenuForm.classList.toggle("hide") }}
-		]});
+		const optionMenuForm = createNewElement("form", {
+			classList: ["hide"],
+			onsubmit: (event) => {
+				formValidation(event);
+			},
+		});
+		const optionMenuToggle = createNewElement("button", {
+			classList: ["toggle"],
+			type: "button",
+			textContent: "| | |",
+			listeners: [
+				{
+					type: "click",
+					get action() {
+						return optionMenuToggle.classList.toggle("hide");
+					},
+				},
+				{
+					type: "click",
+					get action() {
+						return optionMenuForm.classList.toggle("hide");
+					},
+				},
+			],
+		});
 
 		context = canvas.getContext("2d");
 		bodyElement.insertAdjacentElement("beforeend", canvas);
@@ -95,7 +127,7 @@ const patterns = (function () {
 		// The input fields and labels
 		const setMenuFormData = (object, layer = 0, parents = []) => {
 			for (const [key, value] of Object.entries(object)) {
-				if (layer === 0) optionMenuForm.appendChild(createNewElement("label", { classList: [ "title" ], textContent: key }));
+				if (layer === 0) optionMenuForm.appendChild(createNewElement("label", { classList: ["title"], textContent: key }));
 
 				if (typeof value === "object") {
 					const newParents = [...parents, key];
@@ -108,7 +140,7 @@ const patterns = (function () {
 					if (layer !== 0) {
 						// We slice here because the title already contains the root object's name
 						const parentString = [...parents.slice(1), key].join(" ").trim();
-						let spacer = createNewElement("span", { classList: [ "spacer" ] });
+						let spacer = createNewElement("span", { classList: ["spacer"] });
 						let span = createNewElement("span", { textContent: parentString });
 
 						newLabel.appendChild(spacer);

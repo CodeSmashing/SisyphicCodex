@@ -10,13 +10,13 @@ function getRandomInt(min = 0, max = 20) {
 
 /**
  * Picks a pseudo-random value within a specified range that is a multiple of a different given number.
- * @param {number} min 
- * @param {number} max 
- * @param {number} multipleOf 
+ * @param {number} min
+ * @param {number} max
+ * @param {number} multipleOf
  * @returns {number} Returns the rounded picked value
  */
 function getRandomIntMultiple(min, max, multipleOf) {
-    return Math.round(getRandomInt(min, max) / multipleOf) * multipleOf;
+	return Math.round(getRandomInt(min, max) / multipleOf) * multipleOf;
 }
 
 /**
@@ -25,7 +25,7 @@ function getRandomIntMultiple(min, max, multipleOf) {
  * @returns {boolean} Returns a boolean, true if a pseudo-random number between 0 and 1 is less then chance, otherwise false.
  */
 function getRandomBool(chance = 0.5) {
-    return Math.random() < chance;
+	return Math.random() < chance;
 }
 
 /**
@@ -35,35 +35,35 @@ function getRandomBool(chance = 0.5) {
  * @returns {Array<{}>} Returns an array of 3 objects, one for each of the RGB values. Objects contain a random value within given range, and a state indicating if it's increasing or decreasing.
  */
 function getRandomColor(min = 0, max = 255) {
-    return Array.from({ length: 3 }, () => ({
-        value: getRandomInt(min, max),
-        state: getRandomBool(),
-    }));
+	return Array.from({ length: 3 }, () => ({
+		value: getRandomInt(min, max),
+		state: getRandomBool(),
+	}));
 }
 
 /**
  * Debounce solution from Mr. Polywhirl: https://stackoverflow.com/questions/75988682/debounce-in-javascript
- * 
+ *
  * Original source Josh W. Comeau: https://www.joshwcomeau.com/snippets/javascript/debounce/
- * 
+ *
  * Creates a debounced function that delays invoking the callback until after wait milliseconds have elapsed since the last time the debounced function was invoked.
  * @param {Function} callback The function to debounce.
  * @param {number} wait The number of milliseconds to delay.
  * @returns {Function} Returns the new debounced function.
  */
 function debounce(callback, wait) {
-    let timeoutId = null;
-    return (...args) => {
-        window.clearTimeout(timeoutId);
-        timeoutId = window.setTimeout(() => {
-            callback(...args);
-        }, wait);
-    };
-};
+	let timeoutId = null;
+	return (...args) => {
+		window.clearTimeout(timeoutId);
+		timeoutId = window.setTimeout(() => {
+			callback(...args);
+		}, wait);
+	};
+}
 
 /**
  * Sets a single nested property inside a given object.
- * 
+ *
  * Solution provided completely by AI, got no source.
  * @param {object} obj Original object to search through.
  * @param {Array<string>} path Array containing the full list of property keys leading to, and including, the property to change.
@@ -71,19 +71,19 @@ function debounce(callback, wait) {
  * @returns {*} Returns the adjusted value.
  */
 function setNestedProperty(obj, path, value) {
-    if (typeof path === "string") {
-      path = path.split(".");
-    }
-    
-    return path.reduce((current, key, index) => {
-        if (index === path.length - 1) {
-            current[key] = value;
-        } else {
-            current[key] = current[key] || {};
-        }
+	if (typeof path === "string") {
+		path = path.split(".");
+	}
 
-        return current[key];
-    }, obj);
+	return path.reduce((current, key, index) => {
+		if (index === path.length - 1) {
+			current[key] = value;
+		} else {
+			current[key] = current[key] || {};
+		}
+
+		return current[key];
+	}, obj);
 }
 
 /**
@@ -93,45 +93,45 @@ function setNestedProperty(obj, path, value) {
  * @returns {node} Returns the node of the newly created element.
  */
 function createNewElement(element, properties) {
-    element = document.createElement(element);
-    for (const [key, value] of Object.entries(properties)) {
-        switch (key) {
-            case "width":
-            case "height":
-            case "id":
-            case "type":
-            case "name":
-            case "value":
-            case "textContent":
-            case "step":
-            case "onsubmit":
-                element[key] = value;
-                break;
-            case "classList":
-                if (Array.isArray(value)) element.classList.add(...value);
-                break;
-            case "listeners":
-                if (Array.isArray(value)) {
-                    value.forEach((listener) => {
-                        element.addEventListener(listener.type, () => {
-                            listener.action;
-                        });
-                    });
-                }
-                break;
-            case "style":
-                if (typeof value === "object") {
-                    for (const [styleKey, styleValue] of Object.entries(value)) {
-                        element.style[styleKey] = styleValue;
-                    }
-                }
-                break;
-            default:
-                console.log(`Unhandled property: ${key}`); // console.warn();
-                break;
-        }
-    }
-    return element;
+	element = document.createElement(element);
+	for (const [key, value] of Object.entries(properties)) {
+		switch (key) {
+			case "width":
+			case "height":
+			case "id":
+			case "type":
+			case "name":
+			case "value":
+			case "textContent":
+			case "step":
+			case "onsubmit":
+				element[key] = value;
+				break;
+			case "classList":
+				if (Array.isArray(value)) element.classList.add(...value);
+				break;
+			case "listeners":
+				if (Array.isArray(value)) {
+					value.forEach((listener) => {
+						element.addEventListener(listener.type, () => {
+							listener.action;
+						});
+					});
+				}
+				break;
+			case "style":
+				if (typeof value === "object") {
+					for (const [styleKey, styleValue] of Object.entries(value)) {
+						element.style[styleKey] = styleValue;
+					}
+				}
+				break;
+			default:
+				console.log(`Unhandled property: ${key}`); // console.warn();
+				break;
+		}
+	}
+	return element;
 }
 
 /**
@@ -142,22 +142,22 @@ function createNewElement(element, properties) {
  * @returns {string} Returns a string in the format of rgb(r, g, b) with the updated color values.
  */
 function adjustColor(fillColor, min = 0, max = 255) {
-    // Loop through each color component defined in the cube.color array
-    for (const color of fillColor) {
-        // Adjust value based on state
-        color.value += color.state ? -1 : 1;
+	// Loop through each color component defined in the cube.color array
+	for (const color of fillColor) {
+		// Adjust value based on state
+		color.value += color.state ? -1 : 1;
 
-        // Clamp values and update state accordingly
-        if (color.value <= min) {
-            color.value = min;
-            color.state = !color.state; // Start increasing when reaching 0
-        } else if (color.value >= max) {
-            color.value = max;
-            color.state = !color.state; // Start decreasing when reaching max
-        }
-    }
+		// Clamp values and update state accordingly
+		if (color.value <= min) {
+			color.value = min;
+			color.state = !color.state; // Start increasing when reaching 0
+		} else if (color.value >= max) {
+			color.value = max;
+			color.state = !color.state; // Start decreasing when reaching max
+		}
+	}
 
-    return `rgb(${fillColor[0].value}, ${fillColor[1].value}, ${fillColor[2].value})`;
+	return `rgb(${fillColor[0].value}, ${fillColor[1].value}, ${fillColor[2].value})`;
 }
 
 /**
@@ -168,7 +168,7 @@ function adjustColor(fillColor, min = 0, max = 255) {
  * @returns {boolean} Returns a boolean, true if the given number is included in the range, false otherwise.
  */
 function isInRange(number, min, max) {
-    return (number >= min) && (number <= max);
+	return number >= min && number <= max;
 }
 
 /**
@@ -177,5 +177,5 @@ function isInRange(number, min, max) {
  * @returns {*} Returns a pseudo-randomly picked element.
  */
 function getRandomArrayElement(list) {
-    return list[Math.floor(Math.random() * list.length)];
+	return list[Math.floor(Math.random() * list.length)];
 }

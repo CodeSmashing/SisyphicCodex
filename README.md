@@ -1,13 +1,13 @@
 A collection of what I do.
 
 [cube.js]
-Game script to have a bunch of cubes move around.
-There is one article element which you can click which reloads the page on click.
+Game script to have a bunch of cubes move around. Webpage is populated with article elements to represent the cubes.
+There is one article element which you can click which pauses the game on click.
 
 [pattern.js]
-Game script for drawing randomised lines in random ways, very adjustable with a menu included at the top.
+Script for drawing randomised lines in random ways on a canvas, very adjustable with a menu included at the top.
 
 [snake.js]
-To be made...
+Game script to play snake on a canvas.
 
-P.S: I have yet to properly read the standard ways of writing readme files and do documentation.
+P.S: I have yet to properly read the conventions of writing readme files and how to do documentation.

@@ -1,10 +1,11 @@
 // Using IIFE to avoid name clashes between files
 // export function tag(tagName, text) {}
 const patterns = (function () {
-	let { clientWidth: maxWidth, clientHeight: maxHeight } = document.documentElement;
+	let { clientWidth: maxWidth, clientHeight: maxHeight } = document.body;
 	let context;
 	let animationFrameId = null;
 	let patternArray = [];
+	let lastTime = 0;
 
 	const patternConstants = {
 		// Constants for movement
@@ -30,10 +31,10 @@ const patterns = (function () {
 		},
 
 		// Misc.
-		PATTERN_COUNT: 1,
+		PATTERN_COUNT: 1000,
 		WIDTH: 3,
 		MAX_ITERATIONS: 8,
-		IS_PAUSED: false,
+		FRAME_DELAY: 0, // In milliseconds
 		ORIGIN_CHOICE: "CENTER",
 
 		// Constants for color
@@ -172,12 +173,10 @@ const patterns = (function () {
 		// User input listener for pause/resume functionality
 		document.addEventListener("keydown", (event) => {
 			if (event.code.toLowerCase() == "space") {
-				if (!patternConstants.IS_PAUSED) {
-					patternConstants.IS_PAUSED = true;
-					pauseAnimation();
-				} else {
-					patternConstants.IS_PAUSED = false;
+				if (animationFrameId === null) {
 					resumeAnimation();
+				} else {
+					pauseAnimation();
 				}
 			}
 		});
@@ -186,29 +185,36 @@ const patterns = (function () {
 		document.addEventListener("mousemove", cursorUpdate);
 
 		window.addEventListener("resize", () => {
-			let { clientWidth: maxWidth, clientHeight: maxHeight } = document.documentElement;
+			maxWidth = document.body.clientWidth;
+			maxHeight = document.body.clientHeight;
 			canvas.width = maxWidth;
 			canvas.height = maxHeight;
 		});
 
-		// Start the initial pattern animation loop
-		patternAnimationLoop();
+		// Start the initial pattern animation
+		animationFrameId = requestAnimationFrame(patternAnimate);
 	}
 
-	// To animate the entire pattern array in a loop
-	function patternAnimationLoop() {
-		if (patternConstants.IS_PAUSED) return;
+	// To animate the entire pattern array
+	function patternAnimate(currentTime) {
+		// Check the elapsed time since the last frame
+		const timeElapsed = currentTime - lastTime;
 
-		patternArray.forEach((pattern, index) => {
-			patternDraw(pattern, index);
-			pattern.frameCountAnimation++;
-		});
+		if (timeElapsed > patternConstants.FRAME_DELAY) {
+			patternArray.forEach((pattern, index) => {
+				patternDraw(pattern, index);
+				pattern.frameCountAnimation++;
+			});
 
-		// To fade all the drawn patterns after each one is animated
-		if (patternConstants.FADE.AFTER_ANIMATED.BOOL) drawColoredShape(0, 0, patternConstants.FADE.AFTER_ANIMATED);
+			// To fade all the drawn patterns after each one is animated
+			if (patternConstants.FADE.AFTER_ANIMATED.BOOL) drawColoredShape(0, 0, patternConstants.FADE.AFTER_ANIMATED);
+
+			// Update the last time to the current time
+			lastTime = currentTime;
+		}
 
 		// Request the next animation frame
-		animationFrameId = requestAnimationFrame(patternAnimationLoop);
+		animationFrameId = requestAnimationFrame(patternAnimate);
 	}
 
 	// To draw non-essential shapes like the fade and hitboxes
@@ -361,6 +367,7 @@ const patterns = (function () {
 
 	// To change constants depending on user input
 	function updateConstants(userSubmission) {
+		const wasPaused = animationFrameId;
 		pauseAnimation();
 
 		for (const input of userSubmission.elements) {
@@ -389,26 +396,19 @@ const patterns = (function () {
 			return createPatternBud();
 		});
 
-		if (patternConstants.IS_PAUSED === false) {
-			resumeAnimation();
-		}
+		// Request the next frame if we have a valid ID
+		if (!(wasPaused === null)) animationFrameId = requestAnimationFrame(patternAnimate);
 	}
 
-	// To pause the animation
+	// To "pause" the animation
 	function pauseAnimation() {
-		patternConstants.IS_PAUSED = true;
-		if (animationFrameId !== null) {
-			cancelAnimationFrame(animationFrameId);
-			animationFrameId = null;
-		}
+		cancelAnimationFrame(animationFrameId);
+		animationFrameId = null;
 	}
 
-	// To resume the animation
+	// To "resume" the animation
 	function resumeAnimation() {
-		patternConstants.IS_PAUSED = false;
-		if (animationFrameId === null) {
-			animationFrameId = requestAnimationFrame(patternAnimationLoop);
-		}
+		animationFrameId = requestAnimationFrame(patternAnimate);
 	}
 
 	return {

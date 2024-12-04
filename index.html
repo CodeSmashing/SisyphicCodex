@@ -25,6 +25,7 @@
 	<script defer>
 		function formValidation(event) {
 			event.preventDefault();
+			event.submitter.blur();
 
 			switch (event.submitter.name) {
 				case "cubes":

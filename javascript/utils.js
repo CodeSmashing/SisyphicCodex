@@ -9,6 +9,17 @@ function getRandomInt(min = 0, max = 20) {
 }
 
 /**
+ * Picks a pseudo-random value within a specified range that is a multiple of a different given number.
+ * @param {number} min 
+ * @param {number} max 
+ * @param {number} multipleOf 
+ * @returns {number} Returns the rounded picked value
+ */
+function getRandomIntMultiple(min, max, multipleOf) {
+    return Math.round(getRandomInt(min, max) / multipleOf) * multipleOf;
+}
+
+/**
  * Picks a pseudo-random boolean value with an optional likelyhood input.
  * @param {number} chance A value to check against, defaults to 0.5.
  * @returns {boolean} Returns a boolean, true if a pseudo-random number between 0 and 1 is less then chance, otherwise false.
@@ -85,14 +96,14 @@ function createNewElement(element, properties) {
     element = document.createElement(element);
     for (const [key, value] of Object.entries(properties)) {
         switch (key) {
+            case "width":
+            case "height":
             case "id":
             case "type":
             case "name":
-            case "width":
             case "value":
             case "textContent":
             case "step":
-            case "height":
             case "onsubmit":
                 element[key] = value;
                 break;
@@ -108,8 +119,15 @@ function createNewElement(element, properties) {
                     });
                 }
                 break;
+            case "style":
+                if (typeof value === "object") {
+                    for (const [styleKey, styleValue] of Object.entries(value)) {
+                        element.style[styleKey] = styleValue;
+                    }
+                }
+                break;
             default:
-                console.warn(`Unhandled property: ${key}`);
+                console.log(`Unhandled property: ${key}`); // console.warn();
                 break;
         }
     }

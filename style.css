@@ -25,6 +25,7 @@ article {
 	display: flex;
 	width: 50%;
 	background-color: white;
+	justify-content: center;
 
 	&[id="patternMenu"] {
 		left: 0;
@@ -156,6 +157,18 @@ label {
 	justify-content: center;
 }
 
+label.positionTracker {
+	display: flex;
+	width: 20%;
+	text-align: center;
+	z-index: 1;
+
+	>* {
+		flex-grow: 1;
+		text-align: center;
+	}
+}
+
 input {
 	text-align: center;
 
@@ -180,4 +193,35 @@ head,
 script,
 .hide {
 	display: none;
+}
+
+canvas {
+	width: 100%;
+	height: 100%;
+}
+
+.overlay {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	left: 0;
+	top: 0;
+}
+
+footer {
+	position: absolute;
+	bottom: 0;
+	margin: 10px;
+	padding: 10px;
+	background-color: white;
+	border: 2px solid black;
+	border-radius: 10px;
+}
+
+a {
+	cursor: pointer;
+	&:hover {
+		background-color:cornsilk;
+		text-decoration: underline;
+	}
 }

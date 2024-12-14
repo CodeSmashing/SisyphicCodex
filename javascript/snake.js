@@ -1,92 +1,96 @@
 const snake = (function () {
-	let { clientWidth: maxWidth, clientHeight: maxHeight } = document.body;
-	let context;
-	let animationFrameId = null;
-	let lastTime = 0;
-
-	const snakeConstants = {
-		// Constants for movement
+	// Properties that hardly change (exception being getters)
+	const constants = {
+		// Related to movement
 		MARGIN: 20,
-		LAST_DIRECTION: "left",
 
-		// Misc.
-		FRAME_DELAY: 200, // In milliseconds
-		MAX_ITERATIONS: 5,
-
-		// Game related constants
-		GAME: {
-			IS_SNAKE_ALIVE: true,
-			HIGH_SCORE: 0,
-			CURRENT_SCORE: 0,
-			DEATH_TOTAL: 0,
-		},
-
-		// Constants for color
+		// Related to color
 		COLOR: {
 			COLOR_RANGE: { MIN: 0, MAX: 255 },
 			COLOR_SNAKE: "green",
 			COLOR_APPLE: "red",
 		},
+		CONTEXT: null,
+
+		// Misc. properties
+		FRAME_DELAY: 100, // In milliseconds
+		MAX_ITERATIONS: 5,
+		get MAX_WIDTH() { return document.documentElement.clientWidth; },
+		get MAX_HEIGHT() { return document.documentElement.clientHeight; },
 	};
 
-	let snakeBody = [
-		{
-			fillColor: "green",
+	// Properties that keep track of the game's current state
+	const state = {
+		animationFrameId: null,
+		lastTime: 0,
+		lastDirection: "left",
+		isSnakeAlive: true,
+		highScore: 0,
+		currentScore: 0,
+		deathTotal: 0,
+	}
+
+	// "Game-world" objects
+	const objects = {
+		snakeBody: [
+			{
+				fillColor: constants.COLOR.COLOR_SNAKE,
+				position: {
+					x: getRandomIntMultiple(constants.MARGIN, constants.MAX_WIDTH - constants.MARGIN, constants.MARGIN),
+					y: getRandomIntMultiple(constants.MARGIN, constants.MAX_HEIGHT - constants.MARGIN, constants.MARGIN),
+				},
+			},
+		],
+		apple: {
+			fillColor: constants.COLOR.COLOR_APPLE,
 			position: {
-				x: getRandomIntMultiple(snakeConstants.MARGIN, maxWidth - snakeConstants.MARGIN, snakeConstants.MARGIN),
-				y: getRandomIntMultiple(snakeConstants.MARGIN, maxHeight - snakeConstants.MARGIN, snakeConstants.MARGIN),
+				x: getRandomIntMultiple(constants.MARGIN, constants.MAX_WIDTH - constants.MARGIN, constants.MARGIN),
+				y: getRandomIntMultiple(constants.MARGIN, constants.MAX_HEIGHT - constants.MARGIN, constants.MARGIN),
 			},
 		},
-	];
-
-	let apple = {
-		fillColor: "red",
-		position: {
-			x: getRandomIntMultiple(snakeConstants.MARGIN, maxWidth - snakeConstants.MARGIN, snakeConstants.MARGIN),
-			y: getRandomIntMultiple(snakeConstants.MARGIN, maxHeight - snakeConstants.MARGIN, snakeConstants.MARGIN),
-		},
-	};
+	}
 
 	function main() {
 		const bodyElement = document.querySelector("body");
-		bodyElement.innerHTML = "";
-		bodyElement.style.backgroundColor = "black";
+		const canvas = createNewElement("canvas", { width: constants.MAX_WIDTH, height: constants.MAX_HEIGHT, });
 
-		// Create elements like the canvas or option-menu and set properties
-		const canvas = createNewElement("canvas", { width: maxWidth, height: maxHeight });
-		context = canvas.getContext("2d");
+		// Initial page / element styling
+		document.title = "Snake";
+		bodyElement.style.backgroundColor = "black";
+		bodyElement.innerHTML = "";
 		bodyElement.insertAdjacentElement("beforeend", canvas);
+		constants.CONTEXT = canvas.getContext("2d");
 
 		// User input listener
 		document.addEventListener("keydown", handleInput);
 
 		window.addEventListener("resize", () => {
-			maxWidth = document.body.clientWidth;
-			maxHeight = document.body.clientHeight;
-			canvas.width = maxWidth;
-			canvas.height = maxHeight;
+			canvas.width = constants.MAX_WIDTH;
+			canvas.height = constants.MAX_HEIGHT;
 		});
 
-		animationFrameId = requestAnimationFrame(snakeAnimate);
+		// Initial animation start
+		state.animationFrameId = requestAnimationFrame(animate);
 	}
 
 	function handleInput(event) {
 		const input = event.code.toLowerCase();
 
-		// Handle the space key for pausing/resuming
 		if (input === "space") {
+			// Handle the space key for pausing/resuming
+			const { MARGIN } = constants;
+
 			// If there isn't a frame id, it's either because the snake died or because we simply paused using the spacebar
 			// If the snake has died we give it a new random position, resume either way
-			if (animationFrameId === null) {
-				if (!snakeConstants.IS_SNAKE_ALIVE) {
-					const { MARGIN } = snakeConstants;
-					snakeConstants.IS_SNAKE_ALIVE = true;
-					snakeBody = [
+			if (state.animationFrameId === null) {
+				if (!state.isSnakeAlive) {
+					state.isSnakeAlive = true;
+					objects.snakeBody = [
 						{
 							fillColor: "green",
 							position: {
-								x: getRandomIntMultiple(MARGIN, maxWidth - MARGIN, MARGIN),
-								y: getRandomIntMultiple(MARGIN, maxHeight - MARGIN, MARGIN),
+								x: getRandomIntMultiple(MARGIN, constants.MAX_WIDTH - MARGIN, MARGIN),
+								y: getRandomIntMultiple(MARGIN, constants.MAX_HEIGHT - MARGIN, MARGIN),
 							},
 						},
 					];
@@ -95,7 +99,7 @@ const snake = (function () {
 			} else {
 				pauseAnimation();
 			}
-		} else {
+		} else if (input.includes("arrow")) {
 			// Handle arrow keys for movement
 			const direction = input.replace("arrow", "");
 
@@ -108,71 +112,69 @@ const snake = (function () {
 			};
 
 			// Check if the key is an arrow key and if the direction change is valid
-			if (["left", "right", "up", "down"].includes(direction) && !(snakeBody.length > 1 && oppositeDirection[direction] === snakeConstants.LAST_DIRECTION)) {
-				snakeConstants.LAST_DIRECTION = direction;
+			if (["left", "right", "up", "down"].includes(direction) && !(objects.snakeBody.length > 1 && oppositeDirection[direction] === state.lastDirection)) {
+				state.lastDirection = direction;
 			}
 		}
 	}
 
-	// To animate the snake body array
-	function snakeAnimate(currentTime) {
+	function animate(currentTime) {
 		// Check the elapsed time since the last frame
-		const timeElapsed = currentTime - lastTime;
+		const timeElapsed = currentTime - state.lastTime;
+		const { FRAME_DELAY, CONTEXT } = constants;
 
-		if (timeElapsed > snakeConstants.FRAME_DELAY) {
+		if (timeElapsed > FRAME_DELAY) {
 			// Redraw the canvas background
-			context.fillStyle = "black";
-			context.beginPath();
-			context.fillRect(0, 0, maxWidth, maxHeight);
-			context.closePath();
+			CONTEXT.fillStyle = "black";
+			CONTEXT.beginPath();
+			CONTEXT.fillRect(0, 0, constants.MAX_WIDTH, constants.MAX_HEIGHT);
+			CONTEXT.closePath();
 
 			// Draw the apple
-			snakeDraw(apple);
+			canvasDraw([objects.apple]);
 
 			// Check if the snake collided with itself or the apple
 			// Move the snake body if it didn't collide with itself
-			if (!checkCollision()) snakeMovement();
+			if (!checkCollision()) updateMovement();
 
 			// Draw the snake body
-			snakeBody.forEach((bodyPart) => {
-				snakeDraw(bodyPart);
-			});
+			canvasDraw(objects.snakeBody);
 
 			// Update the last time to the current time
-			lastTime = currentTime;
+			state.lastTime = currentTime;
 		}
 
 		// Request the next frame if we have a valid ID
-		if (animationFrameId !== null) animationFrameId = requestAnimationFrame(snakeAnimate);
+		if (state.animationFrameId !== null) state.animationFrameId = requestAnimationFrame(animate);
 	}
 
-	// To draw game objects
-	function snakeDraw(object) {
-		const { x, y } = object.position;
-		const { MARGIN } = snakeConstants;
+	function canvasDraw(object) {
+		for (const subObject of object) {
+			const { position: { x, y }, fillColor } = subObject;
+			const { MARGIN, CONTEXT } = constants;
 
-		context.fillStyle = object.fillColor;
-		context.beginPath();
-		context.fillRect(x - MARGIN / 2, y - MARGIN / 2, MARGIN, MARGIN);
-		context.closePath();
+			CONTEXT.fillStyle = fillColor;
+			CONTEXT.beginPath();
+			CONTEXT.fillRect(x - MARGIN / 2, y - MARGIN / 2, MARGIN, MARGIN);
+			CONTEXT.closePath();
+		}
 	}
 
-	// To move the snake and it's body
-	function snakeMovement() {
-		const head = snakeBody[0]; // Head is always the first element in snakeBody
-		const { MARGIN } = snakeConstants;
+	function updateMovement() {
+		const head = objects.snakeBody[0]; // Head is always the first element in snakeBody
+		const { MARGIN } = constants;
 
 		// Move the rest of the body: each part follows the position of the part ahead of it
-		for (let i = snakeBody.length - 1; i > 0; i--) {
-			const currentPart = snakeBody[i];
-			const previousPart = snakeBody[i - 1];
+		for (let i = objects.snakeBody.length - 1; i > 0; i--) {
+			const currentPart = objects.snakeBody[i];
+			const previousPart = objects.snakeBody[i - 1];
 
 			// Move the current part to the position of the previous part
 			currentPart.position = { ...previousPart.position };
 		}
 
-		// Move the head based on the LAST_DIRECTION
-		switch (snakeConstants.LAST_DIRECTION) {
+		// Move the head based on the last direction
+		switch (state.lastDirection) {
 			case "left":
 				head.position.x -= MARGIN;
 				break;
@@ -190,8 +192,8 @@ const snake = (function () {
 		}
 
 		// Check for bounds (wrap the snake around)
-		for (const [axis] of Object.entries(head.position)) {
-			const comparison = axis === "x" ? maxWidth : maxHeight;
+		for (const axis of ["x", "y"]) {
+			const comparison = axis === "x" ? constants.MAX_WIDTH : constants.MAX_HEIGHT;
 			if (head.position[axis] >= comparison) {
 				head.position[axis] = 0;
 			} else if (head.position[axis] < 0) {
@@ -200,42 +202,39 @@ const snake = (function () {
 		}
 	}
 
-	// To add new snake bodyparts
 	function addNewBodyPart() {
-		const lastPart = snakeBody[snakeBody.length - 1]; // Get the last segment
+		const lastPart = objects.snakeBody[objects.snakeBody.length - 1]; // Get the last segment
 		const newPart = {
 			fillColor: "green", // Color of the new body part
 			position: { ...lastPart.position }, // Same position as the last part initially
 		};
 
 		// Add the new body part to the snake body array
-		snakeBody.push(newPart);
+		objects.snakeBody.push(newPart);
 	}
 
-	// To check collisions like snake vs apple or snake vs snake
 	function checkCollision() {
-		const head = snakeBody[0]; // The head is always the first element in snakeBody
-		let { GAME } = snakeConstants;
+		const head = objects.snakeBody[0]; // The head is always the first element in snakeBody
 
 		// Check for collision with the snake body
-		if (snakeBody.some((bodyPart, index) => index > 0 && bodyPart.position.x === head.position.x && bodyPart.position.y === head.position.y)) {
-			snakeConstants.IS_SNAKE_ALIVE = false;
-			GAME.DEATH_TOTAL++;
+		if (objects.snakeBody.some((bodyPart, index) => index > 0 && bodyPart.position.x === head.position.x && bodyPart.position.y === head.position.y)) {
+			state.isSnakeAlive = false;
+			state.deathTotal++;
 			pauseAnimation();
 			alert(
 				"You died no bread alert.\n"+
-				`Total Deaths: ${GAME.DEATH_TOTAL}\n` +
-				`Score this run: ${GAME.CURRENT_SCORE}\n` +
-				`Highscore: ${GAME.HIGH_SCORE}`
+				`Total Deaths: ${state.deathTotal}\n` +
+				`Score this run: ${state.currentScore}\n` +
+				`Highscore: ${state.highScore}`
 			);
-			GAME.CURRENT_SCORE = 0;
+			state.currentScore = 0;
 			return true; // Exit the function if we've found a collision with the body
 		}
 
 		// Check for collision with the apple
-		if (head.position.x === apple.position.x && head.position.y === apple.position.y) {
-			GAME.CURRENT_SCORE++;
-			if (GAME.CURRENT_SCORE > GAME.HIGH_SCORE) GAME.HIGH_SCORE = GAME.CURRENT_SCORE;
+		if (head.position.x === objects.apple.position.x && head.position.y === objects.apple.position.y) {
+			state.currentScore++;
+			if (state.currentScore > state.highScore) state.highScore = state.currentScore;
 
 			// Grow the snake by adding a new body part at the end
 			addNewBodyPart();
@@ -246,10 +245,11 @@ const snake = (function () {
 		return false;
 	}
 
-	// To place the apple is valid coördinates, uses a grid-search subdivision algorithm
 	function placeApple() {
+		// Grid-search subdivision algorithm to find new valid apple coördinates
 		// We always subdivide our rectangles by 4, so you could say our grid-size is 4
-		let rectangles = [{ x: 0, y: 0, width: maxWidth, height: maxHeight }]; // Starting rectangle
+		const { MARGIN } = constants;
+		let rectangles = [{ x: 0, y: 0, width: constants.MAX_WIDTH, height: constants.MAX_HEIGHT }]; // Starting rectangle
 
 		// Try placing the apple in subdivisions
 		function findApplePosition(rectangles, maxDepth = 3) {
@@ -271,7 +271,7 @@ const snake = (function () {
 			// Function to check if the rectangle contains a valid apple position
 			function isValidRectangle(rect) {
 				// Check if this area overlaps with any part of the snake
-				return !snakeBody.some((bodyPart) => {
+				return !objects.snakeBody.some((bodyPart) => {
 					isInRange(bodyPart.position.x, rect.x, rect.width) &&
 					isInRange(bodyPart.position.y, rect.y, rect.height);
 				});
@@ -300,8 +300,8 @@ const snake = (function () {
 				if (validRectangles.length > 0) {
 					// Pick a random valid rectangle
 					const chosenRect = validRectangles[Math.floor(Math.random() * validRectangles.length)];
-					apple.position.x = getRandomIntMultiple(chosenRect.x, chosenRect.width, snakeConstants.MARGIN);
-					apple.position.y = getRandomIntMultiple(chosenRect.y, chosenRect.height, snakeConstants.MARGIN);
+					objects.apple.position.x = getRandomIntMultiple(chosenRect.x + MARGIN, chosenRect.width - MARGIN, MARGIN);
+					objects.apple.position.y = getRandomIntMultiple(chosenRect.y + MARGIN, chosenRect.height - MARGIN, MARGIN);
 					return;
 				}
 
@@ -310,22 +310,20 @@ const snake = (function () {
 			}
 
 			// Fallback if no position is found
-			apple.position.x = Math.round(maxWidth / 2 / snakeConstants.MARGIN) * snakeConstants.MARGIN;
-			apple.position.y = Math.round(maxHeight / 2 / snakeConstants.MARGIN) * snakeConstants.MARGIN;
+			objects.apple.position.x = Math.round(constants.MAX_WIDTH / 2 / MARGIN) * MARGIN;
+			objects.apple.position.y = Math.round(constants.MAX_HEIGHT / 2 / MARGIN) * MARGIN;
 		}
 
 		findApplePosition(rectangles);
 	}
 
-	// To "pause" the animation
 	function pauseAnimation() {
-		cancelAnimationFrame(animationFrameId);
-		animationFrameId = null;
+		cancelAnimationFrame(state.animationFrameId);
+		state.animationFrameId = null;
 	}
 
-	// To "resume" the animation
 	function resumeAnimation() {
-		animationFrameId = requestAnimationFrame(snakeAnimate);
+		state.animationFrameId = requestAnimationFrame(animate);
 	}
 
 	return {

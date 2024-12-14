@@ -126,6 +126,11 @@ function createNewElement(element, properties) {
 					}
 				}
 				break;
+			case "children":
+				for (const child of value) {
+					element.appendChild(child);
+				}
+				break;
 			default:
 				console.log(`Unhandled property: ${key}`); // console.warn();
 				break;

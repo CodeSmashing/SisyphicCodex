@@ -1,32 +1,25 @@
-// Using IIFE to avoid name clashes between files
-// export function tag(tagName, text) {}
-const patterns = (function () {
-	let { clientWidth: maxWidth, clientHeight: maxHeight } = document.body;
-	let context;
-	let animationFrameId = null;
-	let patternArray = [];
-	let lastTime = 0;
-
-	const patternConstants = {
-		// Constants for movement
-		MARGIN: 5,
-		VARIANCE: 0.5,
+const pattern = (function () {
+	// Properties that hardly change (exceptions being getters and form submission)
+	const constants = {
+		// Related to movement
+		MARGIN: 1,
+		VARIANCE: 0,
 		ORIGIN: {
 			CENTER: {
 				MARGIN: 200,
 				get X() {
-					return maxWidth / 2 + getRandomInt(-this.MARGIN, this.MARGIN);
+					return constants.MAX_WIDTH / 2 + getRandomInt(-this.MARGIN, this.MARGIN);
 				},
 				get Y() {
-					return maxHeight / 2 + getRandomInt(-this.MARGIN, this.MARGIN);
+					return constants.MAX_HEIGHT / 2 + getRandomInt(-this.MARGIN, this.MARGIN);
 				},
 			},
 			FULL: {
 				get X() {
-					return getRandomInt(0, maxWidth);
+					return getRandomInt(0, constants.MAX_WIDTH);
 				},
 				get Y() {
-					return getRandomInt(0, maxHeight);
+					return getRandomInt(0, constants.MAX_HEIGHT);
 				},
 			},
 			CURSOR: {
@@ -34,22 +27,15 @@ const patterns = (function () {
 				TARGET_X: 0,
 				TARGET_Y: 0,
 				get X() {
-					return Math.abs(this.TARGET_X - maxWidth + getRandomInt(-this.MARGIN, this.MARGIN));
+					return Math.abs(this.TARGET_X - constants.MAX_WIDTH + getRandomInt(-this.MARGIN, this.MARGIN));
 				},
 				get Y() {
-					return Math.abs(this.TARGET_Y - maxHeight + getRandomInt(-this.MARGIN, this.MARGIN));
+					return Math.abs(this.TARGET_Y - constants.MAX_HEIGHT + getRandomInt(-this.MARGIN, this.MARGIN));
 				},
 			},
 		},
 
-		// Misc.
-		PATTERN_COUNT: 1000,
-		WIDTH: 3,
-		MAX_ITERATIONS: 8,
-		FRAME_DELAY: 0, // In milliseconds
-		ORIGIN_CHOICE: "CENTER",
-
-		// Constants for color
+		// Related to color
 		COLOR_RANGE: { MIN: 0, MAX: 255 },
 		FADE: {
 			AFTER_ANIMATED: {
@@ -77,22 +63,50 @@ const patterns = (function () {
 				STRENGTH: 1,
 			},
 			OF_POS: {
-				BOOL: false,
-				SIZE_X: 10,
-				SIZE_Y: 10,
+				BOOL: true,
+				SIZE_X: 50,
+				SIZE_Y: 50,
 				COLOR: "green",
 				STRENGTH: 0.5,
 			},
+			OF_PAIR_CENTER: {
+				BOOL: false,
+				SIZE_X: 10,
+				SIZE_Y: 10,
+				COLOR: "yellow",
+				STRENGTH: 0.5,
+			},
 		},
+		CONTEXT: null,
+
+		// Misc. properties
+		PATTERN_COUNT: 100,
+		PATTERN_WIDTH: 3,
+		get MAX_WIDTH() {
+			return document.documentElement.clientWidth;
+		},
+		get MAX_HEIGHT() {
+			return document.documentElement.clientHeight;
+		},
+		MAX_ITERATIONS: 8,
+		FRAME_DELAY: 20, // In milliseconds
+		ORIGIN_CHOICE: "CENTER",
+	};
+
+	// Properties that keep track of the game's current state
+	const state = {
+		animationFrameId: null,
+		lastTime: 0,
+	};
+
+	// "Game-world" objects
+	const objects = {
+		patternArray: [],
 	};
 
 	function main() {
 		const bodyElement = document.querySelector("body");
-		bodyElement.innerHTML = "";
-		bodyElement.style.backgroundColor = "black";
-
-		// Create elements like the canvas or option-menu and set properties
-		const canvas = createNewElement("canvas", { width: maxWidth, height: maxHeight });
+		const canvas = createNewElement("canvas", { width: constants.MAX_WIDTH, height: constants.MAX_HEIGHT });
 		const optionMenuArticle = createNewElement("article", { id: "patternMenu" });
 		const optionMenuForm = createNewElement("form", {
 			classList: ["hide"],
@@ -120,11 +134,15 @@ const patterns = (function () {
 			],
 		});
 
-		context = canvas.getContext("2d");
+		// Initial page / element styling
+		document.title = "Patterns";
+		bodyElement.style.backgroundColor = "black";
+		bodyElement.innerHTML = "";
 		bodyElement.insertAdjacentElement("beforeend", canvas);
+		constants.CONTEXT = canvas.getContext("2d");
 		optionMenuArticle.insertAdjacentElement("beforeend", optionMenuToggle);
 
-		// The input fields and labels
+		// The input fields and their labels
 		const setMenuFormData = (object, layer = 0, parents = []) => {
 			for (const [key, value] of Object.entries(object)) {
 				if (layer === 0) optionMenuForm.appendChild(createNewElement("label", { classList: ["title"], textContent: key }));
@@ -134,7 +152,7 @@ const patterns = (function () {
 					setMenuFormData(value, layer + 1, newParents);
 				} else {
 					const parentString = [...parents, key].join(" ").trim();
-					let newInput = createNewElement("input", { type: typeof value, value: value, name: parentString, step: 0.01 });
+					let newInput = createNewElement("input", { type: typeof value, value, name: parentString, step: 0.01 });
 					let newLabel = document.createElement("label");
 
 					if (layer !== 0) {
@@ -153,12 +171,81 @@ const patterns = (function () {
 			}
 		};
 
-		setMenuFormData(patternConstants);
+		setMenuFormData(constants);
 
-		let newInput = createNewElement("input", { type: "submit", value: "Submit new constants.", name: "patternMenu" });
+		const newInput = createNewElement("input", { type: "submit", value: "Submit new constants.", name: "patternMenu" });
 		optionMenuForm.appendChild(newInput);
 		optionMenuArticle.appendChild(optionMenuForm);
 		bodyElement.insertAdjacentElement("beforeend", optionMenuArticle);
+
+		// Initialize the pattern array with randomised patterns
+		objects.patternArray = Array.from({ length: constants.PATTERN_COUNT }, () => {
+			return createPattern();
+		});
+
+		// User input listeners
+		document.addEventListener("keydown", handleInput);
+		document.addEventListener("mousemove", handleMouseMove);
+
+		window.addEventListener("resize", () => {
+			canvas.width = constants.MAX_WIDTH;
+			canvas.height = constants.MAX_HEIGHT;
+		});
+
+		// Initial animation start
+		state.animationFrameId = requestAnimationFrame(animate);
+	}
+
+	function animate(currentTime) {
+		// Check the elapsed time since the last frame
+		const timeElapsed = currentTime - state.lastTime;
+
+		if (timeElapsed > constants.FRAME_DELAY) {
+			canvasDraw();
+
+			// To fade all the drawn patterns after each one is animated
+			if (constants.FADE.AFTER_ANIMATED.BOOL) drawColoredShape(0, 0, constants.FADE.AFTER_ANIMATED);
+
+			// Update the last time to the current time
+			state.lastTime = currentTime;
+		}
+
+		// Request the next frame if we have a valid ID
+		if (state.animationFrameId !== null) state.animationFrameId = requestAnimationFrame(animate);
+	}
+
+	function handleInput(event) {
+		const input = event.code.toLowerCase();
+
+		// Handle the space key for pausing/resuming
+		if (input !== "space") return;
+		state.animationFrameId === null ? resumeAnimation() : pauseAnimation();
+	}
+
+	function handleMouseMove(event) {
+		const optionMenuForm = document.querySelector("body article form");
+		const optionMenuToggle = document.querySelector("body article button")
+
+		debounce(updateMenuVisibility(event), 20);
+
+		if (constants.ORIGIN_CHOICE !== "CURSOR") return;
+		const { clientX: mouseX, clientY: mouseY } = event;
+		constants.ORIGIN.CURSOR.TARGET_X = mouseX;
+		constants.ORIGIN.CURSOR.TARGET_Y = mouseY;
+
+		for (const pattern of objects.patternArray) {
+			pattern.position.x.target = mouseX;
+			pattern.position.y.target = mouseY;
+		}
+
+		function updateMenuVisibility(event) {
+			const shouldShow = shouldShowMenu(event);
+
+			// Hide or show accordingly
+			if (shouldShow) return;
+			optionMenuToggle.classList.remove("hide");
+			optionMenuForm.classList.add("hide");
+		}
 
 		function shouldShowMenu(event) {
 			const { clientX: mouseX, clientY: mouseY } = event;
@@ -173,88 +260,16 @@ const patterns = (function () {
 	
 			return isInMenu;
 		}
-
-		function updateMenuVisibility(event) {
-			const shouldShow = shouldShowMenu(event);
-
-			// Hide or show accordingly
-			if (!shouldShow) {
-				optionMenuToggle.classList.remove("hide");
-				optionMenuForm.classList.add("hide");
-			}
-		}
-
-		function cursorUpdate(event) {
-			debounce(updateMenuVisibility(event), 20);
-			if (patternConstants.ORIGIN_CHOICE === "CURSOR") {
-				const { clientX: mouseX, clientY: mouseY } = event;
-				patternConstants.ORIGIN.CURSOR.TARGET_X = mouseX;
-				patternConstants.ORIGIN.CURSOR.TARGET_Y = mouseY;
-				patternArray.forEach((pattern) => {
-					pattern.position.x.target = mouseX;
-					pattern.position.y.target = mouseY;
-				});
-			}
-		}
-
-		// Initialize the pattern array with randomised patterns
-		patternArray = Array.from({ length: patternConstants.PATTERN_COUNT }, () => {
-			return createPatternBud();
-		});
-
-		// User input listener for pause/resume functionality
-		document.addEventListener("keydown", (event) => {
-			if (event.code.toLowerCase() == "space") {
-				if (animationFrameId === null) {
-					resumeAnimation();
-				} else {
-					pauseAnimation();
-				}
-			}
-		});
-
-		// Add event listener for showing the menu (with debounce)
-		document.addEventListener("mousemove", cursorUpdate);
-
-		window.addEventListener("resize", () => {
-			maxWidth = document.body.clientWidth;
-			maxHeight = document.body.clientHeight;
-			canvas.width = maxWidth;
-			canvas.height = maxHeight;
-		});
-
-		// Start the initial pattern animation
-		animationFrameId = requestAnimationFrame(patternAnimate);
 	}
 
-	// To animate the entire pattern array
-	function patternAnimate(currentTime) {
-		// Check the elapsed time since the last frame
-		const timeElapsed = currentTime - lastTime;
-
-		if (timeElapsed > patternConstants.FRAME_DELAY) {
-			patternArray.forEach((pattern, index) => {
-				patternDraw(pattern, index);
-				pattern.frameCountAnimation++;
-			});
-
-			// To fade all the drawn patterns after each one is animated
-			if (patternConstants.FADE.AFTER_ANIMATED.BOOL) drawColoredShape(0, 0, patternConstants.FADE.AFTER_ANIMATED);
-
-			// Update the last time to the current time
-			lastTime = currentTime;
-		}
-
-		// Request the next animation frame
-		animationFrameId = requestAnimationFrame(patternAnimate);
-	}
-
-	// To draw non-essential shapes like the fade and hitboxes
+	// To draw non-essential shapes like fades and hitboxes
 	function drawColoredShape(x, y, source) {
 		const { COLOR, STRENGTH, SIZE_X = null, SIZE_Y = null } = source;
+		const { CONTEXT } = constants;
+
 		// Convert color name to RGB
-		context.fillStyle = COLOR;
-		let rgbColor = context.fillStyle;
+		CONTEXT.fillStyle = COLOR;
+		let rgbColor = CONTEXT.fillStyle;
 
 		// Remove hashtag if present
 		rgbColor = rgbColor.replace("#", "");
@@ -264,53 +279,60 @@ const patterns = (function () {
 		const g = parseInt(rgbColor.slice(2, 4), 16);
 		const b = parseInt(rgbColor.slice(4, 6), 16);
 
-		context.beginPath();
-		context.fillStyle = `rgba(${r}, ${g}, ${b}, ${STRENGTH})`;
-		context.fillRect(x - SIZE_X / 2, y - SIZE_Y / 2, SIZE_X ?? maxWidth, SIZE_Y ?? maxHeight);
-		context.closePath();
+		CONTEXT.beginPath();
+		CONTEXT.fillStyle = `rgba(${r}, ${g}, ${b}, ${STRENGTH})`;
+		CONTEXT.fillRect(
+			x - SIZE_X / 2,
+			y - SIZE_Y / 2,
+			SIZE_X ?? constants.MAX_WIDTH,
+			SIZE_Y ?? constants.MAX_HEIGHT
+		);
+		CONTEXT.closePath();
 	}
 
-	// To draw individual patterns
-	function patternDraw(pattern, index) {
-		const { x, y } = pattern.position;
-		// Styling and placement of pattern
-		context.strokeStyle = adjustColor(pattern.fillColor, patternConstants.COLOR_RANGE.MIN, patternConstants.COLOR_RANGE.MAX);
-		context.lineWidth = patternConstants.WIDTH;
-		context.beginPath();
-		context.moveTo(x.current, y.current);
-		adjustMovement(pattern, index);
+	function canvasDraw() {
+		const { CONTEXT, COLOR_RANGE, PATTERN_WIDTH, HITBOX, MARGIN, FADE } = constants;
+		for (const [index, pattern] of objects.patternArray.entries()) {
+			const { x, y } = pattern.position;
 
-		context.lineTo(x.current, y.current);
-		context.stroke();
-		context.closePath();
+			// Styling and placement of pattern
+			CONTEXT.strokeStyle = adjustColor(pattern.fillColor, COLOR_RANGE.MIN, COLOR_RANGE.MAX);
+			CONTEXT.lineWidth = PATTERN_WIDTH;
+			CONTEXT.beginPath();
+			CONTEXT.moveTo(x.current, y.current);
+			const chosenMargins = updateMovement(pattern, index);
+			CONTEXT.lineTo(x.current, y.current);
+			CONTEXT.stroke();
+			CONTEXT.closePath();
 
-		// Hitbox pattern
-		if (patternConstants.HITBOX.OF_POS.BOOL) drawColoredShape(x.current, y.current, patternConstants.HITBOX.OF_POS);
+			// Show hitbox of pattern and target
+			if (typeof chosenMargins === "object" && HITBOX.OF_PAIR_CENTER.BOOL) drawColoredShape(x.current - chosenMargins.x / 2, y.current - chosenMargins.y / 2, HITBOX.OF_PAIR_CENTER);
+			if (HITBOX.OF_POS.BOOL) drawColoredShape(x.current, y.current, HITBOX.OF_POS);
+			if (HITBOX.OF_TARGET.BOOL) drawColoredShape(x.target, y.target, HITBOX.OF_TARGET);
 
-		// Hitbox target
-		if (patternConstants.HITBOX.OF_TARGET.BOOL) drawColoredShape(x.target, y.target, patternConstants.HITBOX.OF_TARGET);
+			// Check if the pattern is in range of it's target
+			if (!isInRange(x.current, x.target - MARGIN * 2, x.target + MARGIN * 2)) continue;
+			if (!isInRange(y.current, y.target - MARGIN * 2, y.target + MARGIN * 2)) continue;
 
-		if (isInRange(x.current, x.target - patternConstants.MARGIN * 2, x.target + patternConstants.MARGIN * 2)) {
-			if (isInRange(y.current, y.target - patternConstants.MARGIN * 2, y.target + patternConstants.MARGIN * 2)) {
-				console.log("Target destination reached. Starting a new pattern.");
-				if (patternConstants.FADE.AFTER_TARGET.BOOL) drawColoredShape(0, 0, patternConstants.FADE.AFTER_TARGET);
-				patternArray.splice(index, 1, createPatternBud());
-			}
+			// Replace pattern with a new one and fade the canvas if enabled
+			// console.log("Target destination reached. Starting a new pattern.");
+			objects.patternArray.splice(index, 1, createPattern());
+			if (FADE.AFTER_TARGET.BOOL) drawColoredShape(0, 0, FADE.AFTER_TARGET);
 		}
 	}
 
-	// To adjust pattern positions
-	function adjustMovement(pattern, index, iteration = 0) {
-		const excludedMargins = [],
-			{ position } = pattern,
-			chosenMargins = { x: 0, y: 0 },
-			newPosition = { x: 0, y: 0 },
-			marginValues = [-patternConstants.MARGIN, 0, patternConstants.MARGIN];
+	function updateMovement(pattern, index, iteration = 0) {
+		const excludedMargins = [];
+		const { position } = pattern;
+		const { MARGIN, MAX_ITERATIONS, VARIANCE, FADE } = constants;
+		const chosenMargins = { x: 0, y: 0 };
+		const newPosition = { x: 0, y: 0 };
+		const marginValues = [-MARGIN, 0, MARGIN];
 
 		// To pick random margins that we haven't excluded
-		for (let i = 0; i < patternConstants.MAX_ITERATIONS; i++) {
+		for (let i = 0; i < MAX_ITERATIONS; i++) {
 			for (const [axis, { current, target }] of Object.entries({ x: position.x, y: position.y })) {
-				chosenMargins[axis] = getRandomBool(patternConstants.VARIANCE)
+				chosenMargins[axis] = getRandomBool(VARIANCE)
 					? getRandomArrayElement(marginValues)
 					: marginValues.reduce((best, margin) => {
 							// Try to find the optimal next step
@@ -327,9 +349,7 @@ const patterns = (function () {
 					  }, 0);
 			}
 
-			if (!excludedMargins.some((margins) => margins.x === chosenMargins.x && margins.y === chosenMargins.y)) {
-				break;
-			}
+			if (!excludedMargins.some((margins) => margins.x === chosenMargins.x && margins.y === chosenMargins.y)) break;
 		}
 
 		newPosition.x = position.x.current + chosenMargins.x;
@@ -360,35 +380,37 @@ const patterns = (function () {
 		if (isPositionKnown) {
 			excludedMargins.push(chosenMargins);
 
-			if (iteration < patternConstants.MAX_ITERATIONS) {
-				adjustMovement(pattern, index, iteration + 1);
+			if (iteration < MAX_ITERATIONS) {
+				return updateMovement(pattern, index, iteration + 1);
 			} else {
-				console.log("Maximum iterations reached. Starting a new pattern.");
-				if (patternConstants.FADE.AFTER_MAX_ITERATION.BOOL) drawColoredShape(0, 0, patternConstants.FADE.AFTER_MAX_ITERATION);
-				patternArray.splice(index, 1, createPatternBud());
+				// Replace pattern with a new one and fade the canvas if enabled
+				// console.log("Maximum iterations reached. Starting a new pattern.");
+				objects.patternArray.splice(index, 1, createPattern());
+				if (FADE.AFTER_MAX_ITERATION.BOOL) drawColoredShape(0, 0, FADE.AFTER_MAX_ITERATION);
 			}
 		} else {
 			position.x.current = newPosition.x;
 			position.y.current = newPosition.y;
 			position.known[position.known.length - 1].push({ x: newPosition.x, y: newPosition.y });
 			position.known.push([{ x: newPosition.x, y: newPosition.y }]);
+			return chosenMargins;
 		}
 	}
 
-	// To create new pattern buds and return their associated objects
-	function createPatternBud() {
+	// To create new patterns, returns their associated objects
+	function createPattern() {
+		const { COLOR_RANGE, ORIGIN, ORIGIN_CHOICE } = constants;
 		let patternBud = {
-			fillColor: getRandomColor(patternConstants.COLOR_RANGE.MIN, patternConstants.COLOR_RANGE.MAX),
+			fillColor: getRandomColor(COLOR_RANGE.MIN, COLOR_RANGE.MAX),
 			requestedAnimation: undefined,
-			frameCountAnimation: 0,
 			position: {
 				x: {
-					target: patternConstants.ORIGIN[patternConstants.ORIGIN_CHOICE].TARGET_X ?? getRandomInt(0, maxWidth),
-					current: patternConstants.ORIGIN[patternConstants.ORIGIN_CHOICE].X,
+					target: ORIGIN[ORIGIN_CHOICE].TARGET_X ?? getRandomInt(0, constants.MAX_WIDTH),
+					current: ORIGIN[ORIGIN_CHOICE].X,
 				},
 				y: {
-					target: patternConstants.ORIGIN[patternConstants.ORIGIN_CHOICE].TARGET_Y ?? getRandomInt(0, maxHeight),
-					current: patternConstants.ORIGIN[patternConstants.ORIGIN_CHOICE].Y,
+					target: ORIGIN[ORIGIN_CHOICE].TARGET_Y ?? getRandomInt(0, constants.MAX_HEIGHT),
+					current: ORIGIN[ORIGIN_CHOICE].Y,
 				},
 				known: [],
 			},
@@ -399,48 +421,45 @@ const patterns = (function () {
 
 	// To change constants depending on user input
 	function updateConstants(userSubmission) {
-		const wasPaused = animationFrameId;
+		const wasPaused = state.animationFrameId;
 		pauseAnimation();
 
 		for (const input of userSubmission.elements) {
-			if (input.type !== "submit") {
-				const keys = input.name.split(" ");
+			if (input.type === "submit") continue;
+			const keys = input.name.split(" ");
 
-				switch (input.attributes.type.value) {
-					case "number":
-						setNestedProperty(patternConstants, keys, Number(input.value));
-						break;
-					case "boolean":
-						setNestedProperty(patternConstants, keys, input.value.toLowerCase() === "true");
-						break;
-					case "string":
-						setNestedProperty(patternConstants, keys, String(input.value));
-						break;
-					default:
-						console.log("We haven't considered that type yet.");
-						break;
-				}
+			switch (input.attributes.type.value) {
+				case "number":
+					setNestedProperty(constants, keys, Number(input.value));
+					break;
+				case "boolean":
+					setNestedProperty(constants, keys, input.value.toLowerCase() === "true");
+					break;
+				case "string":
+					setNestedProperty(constants, keys, String(input.value));
+					break;
+				default:
+					console.log("We haven't considered that type yet.");
+					break;
 			}
 		}
 
 		// Initialize the pattern array with newly randomised patterns
-		patternArray = Array.from({ length: patternConstants.PATTERN_COUNT }, () => {
-			return createPatternBud();
+		objects.patternArray = Array.from({ length: constants.PATTERN_COUNT }, () => {
+			return createPattern();
 		});
 
 		// Request the next frame if we have a valid ID
-		if (!(wasPaused === null)) animationFrameId = requestAnimationFrame(patternAnimate);
+		if (wasPaused !== null) state.animationFrameId = requestAnimationFrame(animate);
 	}
 
-	// To "pause" the animation
 	function pauseAnimation() {
-		cancelAnimationFrame(animationFrameId);
-		animationFrameId = null;
+		cancelAnimationFrame(state.animationFrameId);
+		state.animationFrameId = null;
 	}
 
-	// To "resume" the animation
 	function resumeAnimation() {
-		animationFrameId = requestAnimationFrame(patternAnimate);
+		state.animationFrameId = requestAnimationFrame(animate);
 	}
 
 	return {
@@ -448,16 +467,3 @@ const patterns = (function () {
 		update: updateConstants,
 	};
 })();
-
-/**
- * Ideas:
- *	You start from the center of the canvas and have one "tendril" expand outwards.
- *	Every few moves we create a new branch which will act the same way.
- *	Every moving "tendril" moves AWAY from the center and tries to cover as much area as it can.
- *
- *	Could be cool to work with a more elaborate "hot" and "cold" system instead of random variance
- *
- *	Keep an attribute where we calculate once the total amount of optimal steps to take to the target from the starting position (for a counter or something).
- *
- *	Could give individual patterns more then one target if we wish to expand what a single pattern bud can do.
- */

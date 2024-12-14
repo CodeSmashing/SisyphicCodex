@@ -1,139 +1,125 @@
-const cubes = (function () {
-	let { clientWidth: maxWidth, clientHeight: maxHeight } = document.body;
-	let animationFrameId = null;
-	let cubeArray = [];
-	let lastTime = 0;
-	let hasRun = false; // Flag to prevent multiple runs
-
-	// Defining the constants
-	const cubeConstants = {
-		CUBE_COUNT: 200,
-		MIN_SIZE: 3,
-		MAX_SIZE: 5,
+const cube = (function () {
+	// Properties that hardly change (exception being getters)
+	const constants = {
+		// Related to movement
 		MIN_SPEED: 1,
 		MAX_SPEED: 2,
 
-		IS_CLICKED: false,
-		FRAME_DELAY: 10,
-
-		ARTICLES: document.querySelectorAll("article"),
+		// Related to color
 		COLOR_RANGE: { MIN: 0, MAX: 255 },
+
+		// Misc. properties
+		get MAX_WIDTH() {
+			return document.documentElement.clientWidth;
+		},
+		get MAX_HEIGHT() {
+			return document.documentElement.clientHeight;
+		},
+		CUBE_COUNT: 200,
+		MIN_SIZE: 3,
+		MAX_SIZE: 5,
+		FRAME_DELAY: 10,
+		ARTICLES: document.querySelectorAll("article"),
+	};
+
+	// Properties that keep track of the game's current state
+	const state = {
+		animationFrameId: null,
+		lastTime: 0,
+		hasRun: false,
+		isClicked: false,
+	};
+
+	// "Game-world" objects
+	const objects = {
+		cubeArray: [],
 	};
 
 	function main() {
-		if (hasRun) {
-			console.log("Cubes has already been run.");
-			return;
-		}
-
-		hasRun = true;
+		// Prevent the script from getting called several times
+		if (state.hasRun) return console.log("Cubes has already been run.");
+		state.hasRun = true;
 
 		const bodyElement = document.querySelector("body");
 		const formElement = document.querySelector("form[id='startMenu'");
+
+		// Initial page / element styling
+		document.title = "Cubes";
+		bodyElement.style.backgroundColor = "black";
 		formElement.addEventListener("submit", (event) => {
-			if (event.submitter.name !== "cubes") hasRun = false;
+			if (event.submitter.name !== "cubes") state.hasRun = false;
 		});
 
 		// Fill the cube array with random cubes + elements that are already present
 		// We first add the already existing elements, then we create new DOM elements for each extra cube
-		cubeArray = Array.from({ length: cubeConstants.CUBE_COUNT + cubeConstants.ARTICLES.length }, (event, index) => {
+		objects.cubeArray = Array.from({ length: constants.CUBE_COUNT + constants.ARTICLES.length }, (event, index) => {
 			return createCube(index);
 		});
 
 		// Append all the new DOM elements except for those of the cubes that were already present
-		cubeArray.forEach((cube, index) => {
-			if (index > cubeConstants.ARTICLES.length - 1) {
-				bodyElement.insertAdjacentElement("beforeend", cube.domElement);
-			}
-		});
-
-		window.addEventListener("resize", () => {
-			maxWidth = document.body.clientWidth;
-			maxHeight = document.body.clientHeight;
-		});
+		for (const [index, cube] of objects.cubeArray.entries()) {
+			if (index <= constants.ARTICLES.length - 1) continue;
+			bodyElement.insertAdjacentElement("beforeend", cube.domElement);
+		}
 
 		// User input listener
-		document.addEventListener("keydown", (event) => {
-			const input = event.code.toLowerCase();
+		document.addEventListener("keydown", handleInput);
 
-			// Handle the space key for pausing/resuming
-			if (input === "space") {
-				if (animationFrameId === null) {
-					resumeAnimation();
-				} else {
-					pauseAnimation();
-				}
-			}
-		});
-
-		// Specific click listener for the "correct" article
-		cubeArray[0].domElement.addEventListener("click", () => (cubeConstants.IS_CLICKED = true));
-
-		// Start the game initially
-		animationFrameId = requestAnimationFrame(cubesAnimate);
+		// Initial animation start
+		state.animationFrameId = requestAnimationFrame(animate);
 	}
 
-	// To animate the cubes array
-	function cubesAnimate(currentTime) {
+	function animate(currentTime) {
 		// Check the elapsed time since the last frame
-		const timeElapsed = currentTime - lastTime;
+		const timeElapsed = currentTime - state.lastTime;
 
-		if (timeElapsed > cubeConstants.FRAME_DELAY) {
-			// Randomly move the form if it got clicked
-			if (cubeConstants.IS_CLICKED) {
-				cubeArray[0].domElement.style.left = `${getRandomInt(0, maxWidth - cubeArray[0].width)}px`;
-				cubeArray[0].domElement.style.top = `${getRandomInt(0, maxHeight - cubeArray[0].height)}px`;
-				for (const [axis] of Object.entries(cubeArray[0].position)) {
-					cubeArray[0].position[axis].margin = getRandomInt(cubeConstants.MIN_SPEED, cubeConstants.MAX_SPEED);
-					cubeArray[0].position[axis].directionState = getRandomBool();
-				}
-				cubeConstants.IS_CLICKED = false;
-			}
-
+		if (timeElapsed > constants.FRAME_DELAY) {
 			// Move the cubes and update their colors
-			cubeArray.forEach((cube) => {
-				cube.domElement.style.backgroundColor = adjustColor(cube.fillColor, cubeConstants.COLOR_RANGE.MIN, cubeConstants.COLOR_RANGE.MAX);
-				cubeMovement(cube);
-			});
+			updateMovement();
 
 			// Update the last time to the current time
-			lastTime = currentTime;
+			state.lastTime = currentTime;
 		}
 
 		// Request the next frame if we have a valid ID
-		if (animationFrameId !== null) animationFrameId = requestAnimationFrame(cubesAnimate);
+		if (state.animationFrameId !== null) state.animationFrameId = requestAnimationFrame(animate);
 	}
 
-	// To adjust cube positions
-	function cubeMovement(cube) {
-		// Loop through each axis defined in the cube.position object
-		for (const [axis] of Object.keys(cube.position)) {
-			const positionInfo = cube.position[axis];
-			const isXAxis = axis === "x";
-			const currentPosition = parseInt(cube.domElement.style[isXAxis ? "left" : "top"]) || 0;
+	function updateMovement() {
+		// Go through each cube and move them along both axes
+		for (const [cube, { position, domElement, fillColor, width, height }] of Object.entries(objects.cubeArray)) {
+			domElement.style.backgroundColor = adjustColor(fillColor, constants.COLOR_RANGE.MIN, constants.COLOR_RANGE.MAX);
 
-			// Calculate new position based on direction state
-			const change = positionInfo.directionState ? positionInfo.margin : -positionInfo.margin;
-			const newPosition = currentPosition + change;
+			for (const axis of ["x", "y"]) {
+				const positionInfo = position[axis];
+				const isXAxis = axis === "x";
+				const currentPosition = parseInt(domElement.style[isXAxis ? "left" : "top"]) || 0;
 
-			// Check for boundary collisions and update direction state
-			if (newPosition + (isXAxis ? cube.width : cube.height) >= (isXAxis ? maxWidth : maxHeight) || newPosition <= 0) {
-				positionInfo.directionState = !positionInfo.directionState; // Toggle direction
+				// Calculate new position based on direction state
+				const change = positionInfo.directionState ? positionInfo.margin : -positionInfo.margin;
+				const newPosition = currentPosition + change;
+
+				// Check for boundary collisions and update direction state
+				const boundaryLimit = newPosition + (isXAxis ? width : height);
+				if (boundaryLimit >= (isXAxis ? constants.MAX_WIDTH : constants.MAX_HEIGHT) || newPosition <= 0) {
+					positionInfo.directionState = !positionInfo.directionState; // Toggle direction
+				}
+
+				// Update the DOM element's posit ion
+				domElement.style[isXAxis ? "left" : "top"] = `${Math.max(0, newPosition)}px`; // Ensure position is not negative
 			}
-
-			// Update the DOM element's position
-			cube.domElement.style[isXAxis ? "left" : "top"] = `${Math.max(0, newPosition)}px`; // Ensure position is not negative
 		}
 	}
 
-	// Function to create and style a cube DOM element and returns it's associated object, uses existing element if present
 	function createCube(index) {
-		if (index > cubeConstants.ARTICLES.length - 1) {
-			const width = getRandomInt(cubeConstants.MIN_SIZE, cubeConstants.MAX_SIZE);
-			const height = getRandomInt(cubeConstants.MIN_SIZE, cubeConstants.MAX_SIZE);
-			const positionX = getRandomInt(0, maxWidth - width);
-			const positionY = getRandomInt(0, maxHeight - height);
-			const color = getRandomColor(cubeConstants.COLOR_RANGE.MIN, cubeConstants.COLOR_RANGE.MAX);
+		// Create and style a cube object and it's associated DOM element and return the object, uses existing element if present
+		const { ARTICLES, MIN_SIZE, MAX_SIZE, COLOR_RANGE, MIN_SPEED, MAX_SPEED } = constants;
+		if (index > ARTICLES.length - 1) {
+			const width = getRandomInt(MIN_SIZE, MAX_SIZE);
+			const height = getRandomInt(MIN_SIZE, MAX_SIZE);
+			const positionX = getRandomInt(0, constants.MAX_WIDTH - width);
+			const positionY = getRandomInt(0, constants.MAX_HEIGHT - height);
+			const color = getRandomColor(COLOR_RANGE.MIN, COLOR_RANGE.MAX);
 
 			return {
 				width,
@@ -141,12 +127,12 @@ const cubes = (function () {
 				position: {
 					x: {
 						value: positionX,
-						margin: getRandomInt(cubeConstants.MIN_SPEED, cubeConstants.MAX_SPEED),
+						margin: getRandomInt(MIN_SPEED, MAX_SPEED),
 						directionState: getRandomBool(),
 					},
 					y: {
 						value: positionY,
-						margin: getRandomInt(cubeConstants.MIN_SPEED, cubeConstants.MAX_SPEED),
+						margin: getRandomInt(MIN_SPEED, MAX_SPEED),
 						directionState: getRandomBool(),
 					},
 				},
@@ -154,7 +140,15 @@ const cubes = (function () {
 				domElement: createNewElement("article", { style: { width: `${width}px`, height: `${height}px`, left: `${positionX}px`, top: `${positionY}px`, backgroundColor: `rgb(${color[0].value}, ${color[1].value}, ${color[2].value})` } }),
 			};
 		} else {
-			const element = cubeConstants.ARTICLES[index];
+			const element = ARTICLES[index];
+
+			// We just consider every article element present before we filled
+			// out our cube array to be the "correct" targets to click on
+			element.addEventListener("click", () => {
+				element.classList.add("isClicked");
+				pauseAnimation();
+			});
+
 			const rgbString = window.getComputedStyle(element).getPropertyValue("background-color");
 			const rgbArr = rgbString.slice(4, -1).split(","); // Eg something like: [200, 12, 53]
 			const rgbObj = Array.from({ length: 3 }, (event, index) => ({
@@ -168,12 +162,12 @@ const cubes = (function () {
 				position: {
 					x: {
 						value: element.offsetLeft,
-						margin: getRandomInt(cubeConstants.MIN_SPEED, cubeConstants.MAX_SPEED),
+						margin: getRandomInt(MIN_SPEED, MAX_SPEED),
 						directionState: getRandomBool(),
 					},
 					y: {
 						value: element.offsetTop,
-						margin: getRandomInt(cubeConstants.MIN_SPEED, cubeConstants.MAX_SPEED),
+						margin: getRandomInt(MIN_SPEED, MAX_SPEED),
 						directionState: getRandomBool(),
 					},
 				},
@@ -183,15 +177,34 @@ const cubes = (function () {
 		}
 	}
 
-	// To "pause" the animation
-	function pauseAnimation() {
-		cancelAnimationFrame(animationFrameId);
-		animationFrameId = null;
+	function handleInput(event) {
+		const input = event.code.toLowerCase();
+
+		// Handle the space key for pausing/resuming
+		if (input !== "space") return;
+		state.animationFrameId === null ? resumeAnimation() : pauseAnimation();
 	}
 
-	// To "resume" the animation
+	function pauseAnimation() {
+		cancelAnimationFrame(state.animationFrameId);
+		state.animationFrameId = null;
+	}
+
 	function resumeAnimation() {
-		animationFrameId = requestAnimationFrame(cubesAnimate);
+		// When a correct target is clicked we wish to randomize a few properties when we resume
+		const clickedCubes = objects.cubeArray.filter((cube) => cube.domElement.classList.contains("isClicked"));
+
+		for (const cube of clickedCubes) {
+			const { MIN_SPEED, MAX_SPEED } = constants;
+			cube.domElement.classList.remove("isClicked");
+			cube.domElement.style.left = `${getRandomInt(0, constants.MAX_WIDTH - cube.width)}px`;
+			cube.domElement.style.top = `${getRandomInt(0, constants.MAX_HEIGHT - cube.height)}px`;
+			for (const axis of ["x", "y"]) {
+				cube.position[axis].margin = getRandomInt(MIN_SPEED, MAX_SPEED);
+				cube.position[axis].directionState = getRandomBool();
+			}
+		}
+		state.animationFrameId = requestAnimationFrame(animate);
 	}
 
 	return {

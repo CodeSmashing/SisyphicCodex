@@ -98,10 +98,8 @@ const loop = (function () {
 				let y = this.position.y.domElement;
 
 				return createNewElement("label", { classList: ["positionTracker"], children: [
-					createNewElement("span", { textContent: "(" }),
-					x,
-					createNewElement("span", { textContent: "," }),
-					y,
+					createNewElement("span", { textContent: "(" }), x,
+					createNewElement("span", { textContent: "," }), y,
 					createNewElement("span", { textContent: ")" })
 				]});
 			},
@@ -110,26 +108,50 @@ const loop = (function () {
 	};
 
 	function main() {
-		const bodyElement = document.querySelector("body");
-		const articleElement = bodyElement.querySelector("article");
-		const formElement = articleElement.querySelector("form");
-		const footerElement = createNewElement("footer", {});
-		const htmlAttributionString = `<a href="https://freesound.org/people/Bricklover/sounds/560956/">Walking - Snow</a> by <a href="https://freesound.org/people/Bricklover/">Bricklover</a> | License: <a href="http://creativecommons.org/publicdomain/zero/1.0/">Creative Commons 0</a>`;
+		const mainElement = document.querySelector("body main");
+		const asideElement = mainElement.querySelector("aside");
+		const anchorMenu = asideElement.querySelector("ul");
+		const subMainElement = mainElement.querySelector("main");
+		const footerElement = document.querySelector("footer");
+		const attribution = createNewElement("span", {
+			children: [
+				document.createElement("br"),
+				createNewElement("a", { href: "https://freesound.org/people/Bricklover/sounds/560956/", textContent: "Walking - Snow" }),
+				createNewElement("span", { textContent: " by " }),
+				createNewElement("a", { href: "https://freesound.org/people/Bricklover/", textContent: "Bricklover" }),
+				createNewElement("span", { textContent: " | " }),
+				createNewElement("a", { href: "http://creativecommons.org/publicdomain/zero/1.0/", textContent: " License" }),
+			],
+		});
 
 		// Initial page / element styling
 		document.title = "The loop";
-		bodyElement.style.backgroundColor = "white";
-		articleElement.style.backgroundColor = "transparent";
-		articleElement.removeChild(formElement);
-		footerElement.innerHTML = htmlAttributionString;
-		bodyElement.appendChild(footerElement);
+		mainElement.classList.add("game");
+		anchorMenu.style.display = "none";
+		subMainElement.classList.add("loop");
+		subMainElement.style.backgroundColor = "white";
+		subMainElement.replaceChildren();
+		footerElement.appendChild(attribution);
 
 		// Add objects like the "darkness" and "flashlight" gradients etc.
-		articleElement.appendChild(objects.tracker.position.y.gradient.domElement);
-		articleElement.appendChild(objects.tracker.position.x.gradient.domElement);
-		articleElement.appendChild(objects.flashlight.domElement);
+		const backButton = createNewElement("button", {
+			classList: ["return", "-game"],
+			children: [createNewElement("img", { src: "../images/returnArrow.png" })],
+			listeners: [
+				{
+					type: "click",
+					get action() {
+						return leaveGame();
+					},
+				},
+			],
+		});
+		asideElement.insertAdjacentElement("afterbegin", backButton);
+		subMainElement.appendChild(objects.tracker.position.y.gradient.domElement);
+		subMainElement.appendChild(objects.tracker.position.x.gradient.domElement);
+		subMainElement.appendChild(objects.flashlight.domElement);
 		objects.flashlight.domElement.style.background = `radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(0, 0, 0, 0) 12%)`;
-		articleElement.appendChild(objects.tracker.domElement);
+		subMainElement.appendChild(objects.tracker.domElement);
 
 		// User input listeners
 		document.addEventListener("keydown", handleInput);
@@ -137,6 +159,73 @@ const loop = (function () {
 
 		// Initial animation start
 		state.animationFrameId = requestAnimationFrame(animate);
+
+		function leaveGame() {
+			const gameMenuArray = fetch("htmlStorage.json")
+				.then((response) => response.json())
+				.then((data) => {
+					return data["games"]["menu"];
+				})
+				.catch((error) => console.error("Error:", error));
+
+			gameMenuArray.then((results) => {
+				document.title = "Games";
+				mainElement.classList.remove("game");
+				anchorMenu.style.display = "flex";
+				asideElement.removeChild(backButton);
+				subMainElement.classList.remove("loop");
+				subMainElement.style.backgroundColor = "var(--background-main)";
+				subMainElement.replaceChildren();
+				subMainElement.innerHTML = results.join("");
+				footerElement.removeChild(attribution);
+
+				document.removeEventListener("keydown", handleInput);
+				document.removeEventListener("keyup", handleInput);
+
+				state.keysPressed = {};
+				state.animationFrameId = null;
+				state.movementCooldown = false;
+				state.chosenRange = constants.VALID_RANGES[Math.floor(Math.random() * constants.VALID_RANGES.length)];
+				state.lastTime = 0;
+				objects.tracker = {
+					position: {
+						x: {
+							value: 0,
+							domElement: createNewElement("span", { textContent: 0 }),
+							gradient: {
+								direction: "left",
+								domElement: createNewElement("div", { classList: ["overlay"] }),
+							},
+						},
+						y: {
+							value: 0,
+							domElement: createNewElement("span", { textContent: 0 }),
+							gradient: {
+								direction: "top",
+								domElement: createNewElement("div", { classList: ["overlay"] }),
+							},
+						},
+					},
+					get domElement() {
+						let x = this.position.x.domElement;
+						let y = this.position.y.domElement;
+
+						return createNewElement("label", {
+							classList: ["positionTracker"],
+							children: [
+								createNewElement("span", { textContent: "(" }), x,
+								createNewElement("span", { textContent: "," }), y,
+								createNewElement("span", { textContent: ")" })],
+						});
+					},
+				};
+				objects.flashlight = { domElement: createNewElement("div", { classList: ["overlay", "hide"] }) };
+				objects.feet = {
+					left: {},
+					right: {},
+				};
+			});
+		}
 	}
 
 	function animate(currentTime) {
@@ -229,13 +318,13 @@ const loop = (function () {
 			}
 
 			// Update gradients relative to (0,0)
-			let stop1 = -Math.abs(value) - (value / 5);
+			let stop1 = -Math.abs(value) - value / 5;
 			let stop2 = comparison - Math.abs(value);
 			let alpha = Math.abs(value) / (comparison / 2);
 			if (value < 0) {
-				gradient.direction = (axis === "x") ? "left" : "bottom";
+				gradient.direction = axis === "x" ? "left" : "bottom";
 			} else if (value > 0) {
-				gradient.direction = (axis === "x") ? "right" : "top";
+				gradient.direction = axis === "x" ? "right" : "top";
 			}
 
 			// Set dom element styling and text content

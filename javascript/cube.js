@@ -10,16 +10,16 @@ const cube = (function () {
 
 		// Misc. properties
 		get MAX_WIDTH() {
-			return document.documentElement.clientWidth;
+			return document.querySelector("body main main").clientWidth;
 		},
 		get MAX_HEIGHT() {
-			return document.documentElement.clientHeight;
+			return document.querySelector("body main main").clientHeight;
 		},
-		CUBE_COUNT: 200,
+		CUBE_COUNT: 50,
 		MIN_SIZE: 3,
 		MAX_SIZE: 5,
-		FRAME_DELAY: 10,
-		ARTICLES: document.querySelectorAll("article"),
+		FRAME_DELAY: 100,
+		FORMS: document.querySelectorAll("body main main form"),
 	};
 
 	// Properties that keep track of the game's current state
@@ -40,33 +40,85 @@ const cube = (function () {
 		if (state.hasRun) return console.log("Cubes has already been run.");
 		state.hasRun = true;
 
-		const bodyElement = document.querySelector("body");
-		const formElement = document.querySelector("form[id='startMenu'");
+		const mainElement = document.querySelector("body main");
+		const asideElement = mainElement.querySelector("aside");
+		const anchorMenu = asideElement.querySelector("ul");
+		const subMainElement = mainElement.querySelector("main");
+		const formElement = subMainElement.querySelector("form");
 
 		// Initial page / element styling
 		document.title = "Cubes";
-		bodyElement.style.backgroundColor = "black";
+		mainElement.classList.add("game");
+		anchorMenu.style.display = "none";
+		subMainElement.classList.add("cube");
+		subMainElement.style.backgroundColor = "black";
+		formElement.replaceChildren(formElement.querySelector("[name='cubes']"));
+		formElement.removeAttribute("onsubmit");
 		formElement.addEventListener("submit", (event) => {
+			event.preventDefault();
 			if (event.submitter.name !== "cubes") state.hasRun = false;
 		});
 
 		// Fill the cube array with random cubes + elements that are already present
 		// We first add the already existing elements, then we create new DOM elements for each extra cube
-		objects.cubeArray = Array.from({ length: constants.CUBE_COUNT + constants.ARTICLES.length }, (event, index) => {
+		objects.cubeArray = Array.from({ length: constants.CUBE_COUNT + constants.FORMS.length }, (event, index) => {
 			return createCube(index);
 		});
 
 		// Append all the new DOM elements except for those of the cubes that were already present
 		for (const [index, cube] of objects.cubeArray.entries()) {
-			if (index <= constants.ARTICLES.length - 1) continue;
-			bodyElement.insertAdjacentElement("beforeend", cube.domElement);
+			if (index <= constants.FORMS.length - 1) continue;
+			subMainElement.insertAdjacentElement("beforeend", cube.domElement);
 		}
+
+		const backButton = createNewElement("button", {
+			classList: ["return", "-game"],
+			children: [createNewElement("img", { src: "../images/returnArrow.png" })],
+			listeners: [
+				{
+					type: "click",
+					get action() {
+						return leaveGame();
+					},
+				},
+			],
+		});
+		asideElement.insertAdjacentElement("afterbegin", backButton);
 
 		// User input listener
 		document.addEventListener("keydown", handleInput);
 
 		// Initial animation start
 		state.animationFrameId = requestAnimationFrame(animate);
+
+		function leaveGame() {
+			pauseAnimation();
+			const gameMenuArray = fetch("htmlStorage.json")
+				.then((response) => response.json())
+				.then((data) => {
+					return data["games"]["menu"];
+				})
+				.catch((error) => console.error("Error:", error));
+
+			gameMenuArray.then((results) => {
+				document.title = "Games";
+				mainElement.classList.remove("game");
+				anchorMenu.style.display = "flex";
+				asideElement.removeChild(backButton);
+				subMainElement.classList.remove("cube");
+				subMainElement.style.backgroundColor = "var(--background-main)";
+				subMainElement.replaceChildren();
+				subMainElement.innerHTML = results.join("");
+
+				document.removeEventListener("keydown", handleInput);
+
+				state.lastTime = 0;
+				state.hasRun = false;
+				state.isClicked = false;
+				objects.cubeArray = [];
+				constants.FORMS = document.querySelectorAll("body main main form");
+			});
+		}
 	}
 
 	function animate(currentTime) {
@@ -105,7 +157,7 @@ const cube = (function () {
 					positionInfo.directionState = !positionInfo.directionState; // Toggle direction
 				}
 
-				// Update the DOM element's posit ion
+				// Update the DOM element's position
 				domElement.style[isXAxis ? "left" : "top"] = `${Math.max(0, newPosition)}px`; // Ensure position is not negative
 			}
 		}
@@ -113,8 +165,8 @@ const cube = (function () {
 
 	function createCube(index) {
 		// Create and style a cube object and it's associated DOM element and return the object, uses existing element if present
-		const { ARTICLES, MIN_SIZE, MAX_SIZE, COLOR_RANGE, MIN_SPEED, MAX_SPEED } = constants;
-		if (index > ARTICLES.length - 1) {
+		const { FORMS, MIN_SIZE, MAX_SIZE, COLOR_RANGE, MIN_SPEED, MAX_SPEED } = constants;
+		if (index > FORMS.length - 1) {
 			const width = getRandomInt(MIN_SIZE, MAX_SIZE);
 			const height = getRandomInt(MIN_SIZE, MAX_SIZE);
 			const positionX = getRandomInt(0, constants.MAX_WIDTH - width);
@@ -140,7 +192,7 @@ const cube = (function () {
 				domElement: createNewElement("article", { style: { width: `${width}px`, height: `${height}px`, left: `${positionX}px`, top: `${positionY}px`, backgroundColor: `rgb(${color[0].value}, ${color[1].value}, ${color[2].value})` } }),
 			};
 		} else {
-			const element = ARTICLES[index];
+			const element = FORMS[index];
 
 			// We just consider every article element present before we filled
 			// out our cube array to be the "correct" targets to click on

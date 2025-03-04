@@ -3,7 +3,7 @@ const pattern = (function () {
 	const constants = {
 		// Related to movement
 		MARGIN: 1,
-		VARIANCE: 0,
+		VARIANCE: 0.5,
 		ORIGIN: {
 			CENTER: {
 				MARGIN: 200,
@@ -83,10 +83,10 @@ const pattern = (function () {
 		PATTERN_COUNT: 100,
 		PATTERN_WIDTH: 3,
 		get MAX_WIDTH() {
-			return document.documentElement.clientWidth;
+			return document.querySelector("body main").clientWidth;
 		},
 		get MAX_HEIGHT() {
-			return document.documentElement.clientHeight;
+			return document.querySelector("body main").clientHeight;
 		},
 		MAX_ITERATIONS: 8,
 		FRAME_DELAY: 20, // In milliseconds
@@ -105,14 +105,16 @@ const pattern = (function () {
 	};
 
 	function main() {
-		const bodyElement = document.querySelector("body");
+		const mainElement = document.querySelector("body main");
+		const asideElement = mainElement.querySelector("aside");
+		const anchorMenu = asideElement.querySelector("ul");
+		const subMainElement = mainElement.querySelector("main");
 		const canvas = createNewElement("canvas", { width: constants.MAX_WIDTH, height: constants.MAX_HEIGHT });
-		const optionMenuArticle = createNewElement("article", { id: "patternMenu" });
+		const optionMenuArticle = createNewElement("article", { id: "pattern-article" });
 		const optionMenuForm = createNewElement("form", {
+			id: "pattern-menu",
 			classList: ["hide"],
-			onsubmit: (event) => {
-				formValidation(event);
-			},
+			onsubmit: "formInteraction(event);",
 		});
 		const optionMenuToggle = createNewElement("button", {
 			classList: ["toggle"],
@@ -136,9 +138,12 @@ const pattern = (function () {
 
 		// Initial page / element styling
 		document.title = "Patterns";
-		bodyElement.style.backgroundColor = "black";
-		bodyElement.innerHTML = "";
-		bodyElement.insertAdjacentElement("beforeend", canvas);
+		mainElement.classList.add("game");
+		anchorMenu.style.display = "none";
+		subMainElement.classList.add("pattern");
+		subMainElement.style.backgroundColor = "black";
+		subMainElement.replaceChildren();
+		subMainElement.insertAdjacentElement("beforeend", canvas);
 		constants.CONTEXT = canvas.getContext("2d");
 		optionMenuArticle.insertAdjacentElement("beforeend", optionMenuToggle);
 
@@ -173,10 +178,23 @@ const pattern = (function () {
 
 		setMenuFormData(constants);
 
-		const newInput = createNewElement("input", { type: "submit", value: "Submit new constants.", name: "patternMenu" });
+		const backButton = createNewElement("button", {
+			classList: ["return", "-game"],
+			children: [createNewElement("img", { src: "../images/returnArrow.png" })],
+			listeners: [
+				{
+					type: "click",
+					get action() {
+						return leaveGame();
+					},
+				},
+			],
+		});
+		asideElement.insertAdjacentElement("afterbegin", backButton);
+		const newInput = createNewElement("input", { type: "submit", value: "Submit new constants.", name: "pattern-menu" });
 		optionMenuForm.appendChild(newInput);
 		optionMenuArticle.appendChild(optionMenuForm);
-		bodyElement.insertAdjacentElement("beforeend", optionMenuArticle);
+		subMainElement.insertAdjacentElement("beforeend", optionMenuArticle);
 
 		// Initialize the pattern array with randomised patterns
 		objects.patternArray = Array.from({ length: constants.PATTERN_COUNT }, () => {
@@ -186,14 +204,43 @@ const pattern = (function () {
 		// User input listeners
 		document.addEventListener("keydown", handleInput);
 		document.addEventListener("mousemove", handleMouseMove);
-
-		window.addEventListener("resize", () => {
-			canvas.width = constants.MAX_WIDTH;
-			canvas.height = constants.MAX_HEIGHT;
-		});
+		window.addEventListener("resize", setCanvasProperties);
 
 		// Initial animation start
 		state.animationFrameId = requestAnimationFrame(animate);
+
+		function leaveGame() {
+			pauseAnimation();
+			const gameMenuArray = fetch("htmlStorage.json")
+				.then((response) => response.json())
+				.then((data) => {
+					return data["games"]["menu"];
+				})
+				.catch((error) => console.error("Error:", error));
+
+			gameMenuArray.then((results) => {
+				document.title = "Games";
+				mainElement.classList.remove("game");
+				anchorMenu.style.display = "flex";
+				asideElement.removeChild(backButton);
+				subMainElement.classList.remove("pattern");
+				subMainElement.style.backgroundColor = "var(--background-main)";
+				subMainElement.replaceChildren();
+				subMainElement.innerHTML = results.join("");
+
+				document.removeEventListener("keydown", handleInput);
+				document.removeEventListener("mousemove", handleMouseMove);
+				window.removeEventListener("resize", setCanvasProperties);
+
+				state.lastTime = 0;
+				objects.patternArray = [];
+			});
+		}
+	}
+
+	function setCanvasProperties() {
+		canvas.width = constants.MAX_WIDTH;
+		canvas.height = constants.MAX_HEIGHT;
 	}
 
 	function animate(currentTime) {
@@ -224,7 +271,7 @@ const pattern = (function () {
 
 	function handleMouseMove(event) {
 		const optionMenuForm = document.querySelector("body article form");
-		const optionMenuToggle = document.querySelector("body article button")
+		const optionMenuToggle = document.querySelector("body article button");
 
 		debounce(updateMenuVisibility(event), 20);
 
@@ -253,10 +300,10 @@ const pattern = (function () {
 
 			// Detect if hovering in menu
 			const isInMenu =
-				(mouseX >= BOUNDING_RECT.left) &&
-				(mouseX <= BOUNDING_RECT.right) &&
-				(mouseY >= BOUNDING_RECT.top) &&
-				(mouseY <= BOUNDING_RECT.bottom);
+				mouseX >= BOUNDING_RECT.left &&
+				mouseX <= BOUNDING_RECT.right &&
+				mouseY >= BOUNDING_RECT.top &&
+				mouseY <= BOUNDING_RECT.bottom;
 	
 			return isInMenu;
 		}

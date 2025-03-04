@@ -1,0 +1,85 @@
+{
+	"nav": {
+		"signed-in": {},
+		"signed-out": {}
+	},
+	"aside": {
+		"signed-in": {},
+		"signed-out": {}
+	},
+	"auth-form": {
+		"sign-in": [
+			"<button type='button' class='return -auth-menu' id='auth-menu-return'><img src='images/returnArrow.png'></button>",
+			"<h2 id='welcome-legend'>Welcome</h2>",
+			"<h3 id='sign-in-legend'>Sign in to continue</h3>",
+
+			"<img src='/images/qrcode_149453888_2dff7f7c58266a4c55a787fc20358597.png' alt='#'><br>",
+			"<hr>",
+			"<input type='text' title='You need a minimum of 4 alphanumeric characters, the following special characters are allowed: _.' id='sign-in-username' placeholder='Your user name' value='Rambo' minlength='4' maxlength='25' pattern='^(?=.*[\\w.])[\\w.]{4,25}$' required>",
+			"<input type='password' title='You need a minimum of 8 alphanumeric characters, the following special characters are allowed: !@#$%^&*' id='sign-in-password' placeholder='Your password' value='G!raffeL0caleB0at' minlength='8' maxlength='64' pattern='^(?=.*[\\w])[\\w!@#$%^&*]{8,64}$' required>",
+			"<input type='submit' id='sign-in-submit' data-action='sign-in' value='Sign in'>",
+
+			"<p>",
+			"<input id='remember-sign-in' type='checkbox' name='remember'>",
+			"<label for='remember-sign-in'>Keep me signed in</label>",
+			"</p>",
+
+			"<hr>",
+			"<label data-switch='password-reset'>Forgot your password?</label>",
+			"<label data-switch='sign-up'>No account?</label>"
+		],
+		"sign-up": [
+			"<button type='button' class='return -auth-menu' id='auth-menu-return'><img src='images/returnArrow.png'></button>",
+			"<h2 id='welcome-legend'>Welcome</h2>",
+			"<h3 id='sign-up-legend'>Sign up to continue</h3>",
+
+			"<img src='/images/qrcode_149453888_2dff7f7c58266a4c55a787fc20358597.png' alt='#'><br>",
+			"<hr>",
+			"<input type='text' title='You need a minimum of 4 alphanumeric characters, the following special characters are allowed: _.' id='sign-up-username' placeholder='Your user name' value='Rambo' minlength='4' maxlength='25' pattern='^(?=.*[\\w.])[\\w.]{4,25}$' required>",
+			"<input type='password' title='You need a minimum of 8 alphanumeric characters, the following special characters are allowed: !@#$%^&*' id='sign-up-password' placeholder='Your password' value='G!raffeL0caleB0at' minlength='8' maxlength='64' pattern='^(?=.*[\\w])[\\w!@#$%^&*]{8,64}$' required>",
+			"<input type='password' title='You need a minimum of 8 alphanumeric characters, the following special characters are allowed: !@#$%^&*' id='sign-up-password-confirm' placeholder='Repeat your password' value='G!raffeL0caleB0at' minlength='8' maxlength='64' pattern='^(?=.*[\\w])[\\w!@#$%^&*]{8,64}$' required>",
+			"<input type='submit' id='sign-up-submit' data-action='sign-up' value='Sign up'>",
+
+			"<p>",
+			"<input id='remember-sign-in' type='checkbox' name='remember'>",
+			"<label for='remember-sign-in'>Keep me signed in</label>",
+			"</p>",
+
+			"<hr>",
+			"<label data-switch='password-reset'>Forgot your password?</label>",
+			"<label data-switch='sign-in'>Want to sign in?</label>"
+		],
+		"password-reset": [
+			"<button type='button' class='return -auth-menu' id='auth-menu-return'><img src='images/returnArrow.png'></button>",
+			"<h2 id='welcome-legend'>Welcome</h2>",
+			"<h3 id='password-reset-legend'>Reset your password</h3>",
+
+			"<img src='/images/qrcode_149453888_2dff7f7c58266a4c55a787fc20358597.png' alt='#'><br>",
+			"<hr>",
+			"<input type='text' title='You need a minimum of 4 alphanumeric characters, the following special characters are allowed: _.' id='reset-username' placeholder='Your user name' value='' minlength='4' maxlength='25' pattern='^(?=.*[\\w.])[\\w.]{4,25}$' required>",
+			"<input type='password' title='You need a minimum of 8 alphanumeric characters, the following special characters are allowed: !@#$%^&*' id='reset-password' placeholder='Your password' value='G!raffeL0caleB0at' minlength='8' maxlength='64' pattern='^(?=.*[\\w])[\\w!@#$%^&*]{8,64}$' required>",
+			"<input type='password' title='You need a minimum of 8 alphanumeric characters, the following special characters are allowed: !@#$%^&*' id='reset-password-confirm' placeholder='Repeat your password' value='G!raffeL0caleB0at' minlength='8' maxlength='64' pattern='^(?=.*[\\w])[\\w!@#$%^&*]{8,64}$' required>",
+			"<input type='submit' id='reset-submit' data-action='password-reset' value='Reset'>",
+
+			"<p>",
+			"<input id='remember-sign-in' type='checkbox' name='remember'>",
+			"<label for='remember-sign-in'>Keep me signed in</label>",
+			"</p>",
+
+			"<hr>",
+			"<label data-switch='sign-in'>Want to sign in?</label>",
+			"<label data-switch='sign-up'>No account?</label>"
+		]
+	},
+	"games": {
+		"menu": [
+			"<form id='start-menu' method='post' onsubmit='formInteraction(event);'>",
+			"<label>Pick your poison:</label>",
+			"<input type='submit' name='cubes' value='Cubes!' />",
+			"<input type='submit' name='pattern' value='Pattern!' />",
+			"<input type='submit' name='snake' value='Snake!' />",
+			"<input type='submit' name='loop' value='The loop!' />",
+			"</form>"
+		]
+	}
+}

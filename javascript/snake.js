@@ -15,20 +15,24 @@ const snake = (function () {
 		// Misc. properties
 		FRAME_DELAY: 100, // In milliseconds
 		MAX_ITERATIONS: 5,
-		get MAX_WIDTH() { return document.documentElement.clientWidth; },
-		get MAX_HEIGHT() { return document.documentElement.clientHeight; },
+		get MAX_WIDTH() {
+			return document.querySelector("body main").clientWidth;
+		},
+		get MAX_HEIGHT() {
+			return document.querySelector("body main").clientHeight;
+		},
 	};
 
 	// Properties that keep track of the game's current state
 	const state = {
 		animationFrameId: null,
 		lastTime: 0,
-		lastDirection: "left",
+		lastDirection: "q",
 		isSnakeAlive: true,
 		highScore: 0,
 		currentScore: 0,
 		deathTotal: 0,
-	}
+	};
 
 	// "Game-world" objects
 	const objects = {
@@ -48,72 +52,146 @@ const snake = (function () {
 				y: getRandomIntMultiple(constants.MARGIN, constants.MAX_HEIGHT - constants.MARGIN, constants.MARGIN),
 			},
 		},
-	}
+	};
 
 	function main() {
-		const bodyElement = document.querySelector("body");
-		const canvas = createNewElement("canvas", { width: constants.MAX_WIDTH, height: constants.MAX_HEIGHT, });
+		const mainElement = document.querySelector("body main");
+		const asideElement = mainElement.querySelector("aside");
+		const anchorMenu = asideElement.querySelector("ul");
+		const subMainElement = mainElement.querySelector("main");
+		const canvas = createNewElement("canvas", { width: constants.MAX_WIDTH, height: constants.MAX_HEIGHT });
 
 		// Initial page / element styling
 		document.title = "Snake";
-		bodyElement.style.backgroundColor = "black";
-		bodyElement.innerHTML = "";
-		bodyElement.insertAdjacentElement("beforeend", canvas);
+		mainElement.classList.add("game");
+		anchorMenu.style.display = "none";
+		subMainElement.classList.add("snake");
+		subMainElement.style.backgroundColor = "black";
+		subMainElement.replaceChildren();
+		subMainElement.insertAdjacentElement("beforeend", canvas);
 		constants.CONTEXT = canvas.getContext("2d");
 
-		// User input listener
-		document.addEventListener("keydown", handleInput);
-
-		window.addEventListener("resize", () => {
-			canvas.width = constants.MAX_WIDTH;
-			canvas.height = constants.MAX_HEIGHT;
+		// Add additional elements
+		const backButton = createNewElement("button", {
+			classList: ["return", "-game"],
+			children: [createNewElement("img", { src: "../images/returnArrow.png" })],
+			listeners: [
+				{
+					type: "click",
+					get action() {
+						return leaveGame();
+					},
+				},
+			],
 		});
+		asideElement.insertAdjacentElement("afterbegin", backButton);
+
+		// User input listeners
+		document.addEventListener("keydown", handleInput);
+		window.addEventListener("resize", setCanvasProperties);
 
 		// Initial animation start
 		state.animationFrameId = requestAnimationFrame(animate);
+
+		function leaveGame() {
+			pauseAnimation();
+			const gameMenuArray = fetch("htmlStorage.json")
+				.then((response) => response.json())
+				.then((data) => {
+					return data["games"]["menu"];
+				})
+				.catch((error) => console.error("Error:", error));
+
+			gameMenuArray.then((results) => {
+				document.title = "Games";
+				mainElement.classList.remove("game");
+				anchorMenu.style.display = "flex";
+				asideElement.removeChild(backButton);
+				subMainElement.classList.remove("snake");
+				subMainElement.style.backgroundColor = "var(--background-main)";
+				subMainElement.replaceChildren();
+				subMainElement.innerHTML = results.join("");
+
+				document.removeEventListener("keydown", handleInput);
+				window.removeEventListener("resize", setCanvasProperties);
+
+				state.lastTime = 0;
+				state.lastDirection = "q";
+				state.isSnakeAlive = true;
+				state.highScore = 0;
+				state.currentScore = 0;
+				state.deathTotal = 0;
+				objects.snakeBody = [
+					{
+						fillColor: constants.COLOR.COLOR_SNAKE,
+						position: {
+							x: getRandomIntMultiple(constants.MARGIN, constants.MAX_WIDTH - constants.MARGIN, constants.MARGIN),
+							y: getRandomIntMultiple(constants.MARGIN, constants.MAX_HEIGHT - constants.MARGIN, constants.MARGIN),
+						},
+					},
+				];
+				objects.apple = {
+					fillColor: constants.COLOR.COLOR_APPLE,
+					position: {
+						x: getRandomIntMultiple(constants.MARGIN, constants.MAX_WIDTH - constants.MARGIN, constants.MARGIN),
+						y: getRandomIntMultiple(constants.MARGIN, constants.MAX_HEIGHT - constants.MARGIN, constants.MARGIN),
+					},
+				};
+			});
+		}
+	}
+
+	function setCanvasProperties() {
+		canvas.width = constants.MAX_WIDTH;
+		canvas.height = constants.MAX_HEIGHT;
 	}
 
 	function handleInput(event) {
-		const input = event.code.toLowerCase();
+		const directions = ["z", "s", "q", "d", " "];
+		const inputKey = event.key.toLowerCase();
 
-		if (input === "space") {
-			// Handle the space key for pausing/resuming
-			const { MARGIN } = constants;
+		if (event !== null) {
+			// If the input isn't what we want, we exit early
+			if (!directions.includes(inputKey)) return;
+			if (inputKey === " ") {
+				// Handle the space key for pausing/resuming
+				const { MARGIN } = constants;
 
-			// If there isn't a frame id, it's either because the snake died or because we simply paused using the spacebar
-			// If the snake has died we give it a new random position, resume either way
-			if (state.animationFrameId === null) {
-				if (!state.isSnakeAlive) {
-					state.isSnakeAlive = true;
-					objects.snakeBody = [
-						{
-							fillColor: "green",
-							position: {
-								x: getRandomIntMultiple(MARGIN, constants.MAX_WIDTH - MARGIN, MARGIN),
-								y: getRandomIntMultiple(MARGIN, constants.MAX_HEIGHT - MARGIN, MARGIN),
+				// If there isn't a frame id, it's either because the snake died or because we simply paused using the spacebar
+				// If the snake has died we give it a new random position, resume either way
+				if (state.animationFrameId === null) {
+					if (!state.isSnakeAlive) {
+						state.isSnakeAlive = true;
+						objects.snakeBody = [
+							{
+								fillColor: "green",
+								position: {
+									x: getRandomIntMultiple(MARGIN, constants.MAX_WIDTH - MARGIN, MARGIN),
+									y: getRandomIntMultiple(MARGIN, constants.MAX_HEIGHT - MARGIN, MARGIN),
+								},
 							},
-						},
-					];
+						];
+					}
+					resumeAnimation();
+				} else {
+					pauseAnimation();
 				}
-				resumeAnimation();
 			} else {
-				pauseAnimation();
-			}
-		} else if (input.includes("arrow")) {
-			// Handle arrow keys for movement
-			const direction = input.replace("arrow", "");
+				// Handle arrow keys for movement
+				const direction = inputKey;
 
-			// Keep track of all possible directions their opposites
-			const oppositeDirection = {
-				left: "right",
-				right: "left",
-				up: "down",
-				down: "up",
-			};
+				// Keep track of all possible directions their opposites
+				const oppositeDirection = {
+					q: "d",
+					d: "q",
+					z: "s",
+					s: "z",
+				};
 
-			// Check if the key is an arrow key and if the direction change is valid
-			if (["left", "right", "up", "down"].includes(direction) && !(objects.snakeBody.length > 1 && oppositeDirection[direction] === state.lastDirection)) {
-				state.lastDirection = direction;
+				// Check if the key is an arrow key and if the direction change is valid
+				if (["q", "d", "z", "s"].includes(direction) && !(objects.snakeBody.length > 1 && oppositeDirection[direction] === state.lastDirection)) {
+					state.lastDirection = direction;
+				}
 			}
 		}
 	}
@@ -150,7 +228,7 @@ const snake = (function () {
 
 	function canvasDraw(object) {
 		for (const subObject of object) {
-			const { position: { x, y }, fillColor } = subObject;
+			const { position: { x, y }, fillColor, } = subObject;
 			const { MARGIN, CONTEXT } = constants;
 
 			CONTEXT.fillStyle = fillColor;
@@ -175,16 +253,16 @@ const snake = (function () {
 
 		// Move the head based on the last direction
 		switch (state.lastDirection) {
-			case "left":
+			case "q":
 				head.position.x -= MARGIN;
 				break;
-			case "up":
+			case "z":
 				head.position.y -= MARGIN;
 				break;
-			case "down":
+			case "s":
 				head.position.y += MARGIN;
 				break;
-			case "right":
+			case "d":
 				head.position.x += MARGIN;
 				break;
 			default:
@@ -222,10 +300,10 @@ const snake = (function () {
 			state.deathTotal++;
 			pauseAnimation();
 			alert(
-				"You died no bread alert.\n"+
-				`Total Deaths: ${state.deathTotal}\n` +
-				`Score this run: ${state.currentScore}\n` +
-				`Highscore: ${state.highScore}`
+				`You died no bread alert.\n
+				Total Deaths: ${state.deathTotal}\n
+				Score this run: ${state.currentScore}\n
+				Highscore: ${state.highScore}`
 			);
 			state.currentScore = 0;
 			return true; // Exit the function if we've found a collision with the body

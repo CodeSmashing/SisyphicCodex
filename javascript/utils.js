@@ -102,13 +102,21 @@ function createNewElement(element, properties) {
 			case "type":
 			case "name":
 			case "value":
-			case "textContent":
+			case "method":
 			case "step":
 			case "onsubmit":
-				element[key] = value;
+			case "href":
+			case "src":
+				element.setAttribute(key, value);
+				break;
+			case "innerHTML":
+				element.innerHTML = value;
 				break;
 			case "classList":
 				if (Array.isArray(value)) element.classList.add(...value);
+				break;
+			case "textContent":
+				element.textContent = value;
 				break;
 			case "listeners":
 				if (Array.isArray(value)) {
@@ -183,4 +191,59 @@ function isInRange(number, min, max) {
  */
 function getRandomArrayElement(list) {
 	return list[Math.floor(Math.random() * list.length)];
+}
+
+// // To get already existing session data
+// function getSessionData() {
+// 	const signedInData = JSON.parse(sessionStorage.getItem("signedIn"));
+// }
+
+// function setSessionStorageItem(key, action, value) {
+// 	if (action === "add") {
+// 		sessionStorage.setItem(key, value);
+// 	} else {
+// 		sessionStorage.removeItem(key);
+// 	}
+
+// 	window.dispatchEvent(
+// 		new CustomEvent("sessionStorageUpdate", {
+// 			detail: { item: key, action },
+// 		})
+// 	);
+// }
+
+/**
+ * To send asynchronous requests to process.php
+ * @param {String} message
+ * @param {String} action
+ * @param {Object} info
+ * @returns {json} Returns a JSON response
+ */
+async function sendRequest(message, action, info = {}) {
+	console.log(message);
+
+	try {
+		const response = await fetch("../php/process.php", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				info: JSON.stringify(info),
+				action,
+			}),
+		}).then((response) => {
+			return response.json();
+		});
+
+		console.log("The request response: ", response);
+		if (response.signed_in) {
+			sessionStorage.setItem("signedIn", "add", JSON.stringify(response.session));
+		} else if (action === "sign-out") {
+			sessionStorage.removeItem("signedIn");
+		}
+		return response;
+	} catch (error) {
+		console.error("Error: ", error);
+	}
 }

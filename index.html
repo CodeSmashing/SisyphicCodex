@@ -1,54 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<link rel="stylesheet" href="../style.css" />
-		<title>Games</title>
-	</head>
 
-	<body>
-		<article>
-			<form method="POST" id="startMenu" onsubmit="formValidation(event);">
-				<label for="">Pick your poison:</label>
-				<input type="submit" name="cubes" value="Cubes!" />
-				<input type="submit" name="pattern" value="Pattern!" />
-				<input type="submit" name="snake" value="Snake!" />
-				<input type="submit" name="loop" value="The loop!" />
-			</form>
-		</article>
-	</body>
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="stylesheet" href="../css/style.css" />
+	<title>Home</title>
+	<!-- <link rel="icon" type="image/x-icon" href="../images/favicon.ico"> -->
+</head>
 
-	<script src="../javascript/utils.js"></script>
-	<script src="../javascript/cube.js"></script>
-	<script src="../javascript/pattern.js"></script>
-	<script src="../javascript/snake.js"></script>
-	<script src="../javascript/loop.js"></script>
-	<script defer>
-		function formValidation(event) {
-			event.preventDefault();
-			event.submitter.blur();
+<body>
+	<nav>
+		<section></section>
+		<input class="search-bar" type="text" placeholder="This will be a search bar">
+		<section>
+			<button type="button" id="auth-button" data-action="sign-in">Sign up/ in</button>
+			<button type="button" class="unavailable">Options</button>
+		</section>
+	</nav>
+	<main>
+		<aside>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<hr>
+				<li><a href="account.html">Account</a></li>
+				<li><a href="games.html">Games</a></li>
+			</ul>
+			<footer>
+				<p>&copy; 2025 CodeSmashing. All rights reserved.</p>
+				<span>
+					<br>
+					<a href="https://www.flaticon.com/free-icon/close_1828778?term=close&page=1&position=5&origin=search&related_id=1828778" title="close icons">Close icon</a>
+					<span>by</span>
+					<a href="https://www.flaticon.com/authors/pixel-perfect">Pixel Perfect</a>
+					<span>|</span>
+					<a href="https://www.flaticon.com/legal">License</a>
+				</span>
+			</footer>
+		</aside>
+		<main>
+			<article>
+				<p>username: "admin", password: "22222222" </p><br>
+				<p>
+					Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ea iure, a est neque placeat earum
+					recusandae dolores, voluptatibus, doloribus totam repudiandae numquam consequatur quisquam? Maxime
+					iusto velit repudiandae voluptate veniam?
+				</p><br>
+				<p>
+					Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ea iure, a est neque placeat earum
+					recusandae dolores, voluptatibus, doloribus totam repudiandae numquam consequatur quisquam? Maxime
+					iusto velit repudiandae voluptate veniam?
+				</p><br>
+				<p>
+					Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ea iure, a est neque placeat earum
+					recusandae dolores, voluptatibus, doloribus totam repudiandae numquam consequatur quisquam? Maxime
+					iusto velit repudiandae voluptate veniam?
+				</p><br>
+			</article>
+			<article>
+				<p>username: "admin", password: "22222222" </p><br>
+				<p>
+					Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ea iure, a est neque placeat earum
+					recusandae dolores, voluptatibus, doloribus totam repudiandae numquam consequatur quisquam? Maxime
+					iusto velit repudiandae voluptate veniam?
+				</p><br>
+				<p>
+					Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ea iure, a est neque placeat earum
+					recusandae dolores, voluptatibus, doloribus totam repudiandae numquam consequatur quisquam? Maxime
+					iusto velit repudiandae voluptate veniam?
+				</p><br>
+				<p>
+					Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ea iure, a est neque placeat earum
+					recusandae dolores, voluptatibus, doloribus totam repudiandae numquam consequatur quisquam? Maxime
+					iusto velit repudiandae voluptate veniam?
+				</p><br>
+			</article>
+		</main>
+	</main>
+</body>
 
-			switch (event.submitter.name) {
-				case "cubes":
-					cube.run();
-					break;
-				case "pattern":
-					pattern.run();
-					break;
-				case "patternMenu":
-					pattern.update(event.target);
-					break;
-				case "snake":
-					snake.run();
-					break;
-				case "loop":
-					loop.run(event);
-					break;
-				default:
-					console.log("we haven't considerd that option yet.");
-					break;
-			}
-		}
-	</script>
+<script src="../javascript/utils.js"></script>
+<script src="../javascript/formHandling.js"></script>
+<script src="../javascript/authWindow.js"></script>
+
 </html>
